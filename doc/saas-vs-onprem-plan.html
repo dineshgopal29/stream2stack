@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaaS vs On-Premises Plan — Stream2Stack</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --border: #2d3142;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #6366f1;
+    --green: #22c55e; --code-bg: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; padding: 2rem; }
+  .container { max-width: 900px; margin: 0 auto; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  header h1 { font-size: 2rem; font-weight: 700; color: #fff; }
+  .meta { display: flex; gap: 1.5rem; margin-top: 0.5rem; color: var(--muted); font-size: 0.85rem; }
+  .badge { background: var(--accent); color: #fff; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1.5rem 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; }
+  .card h3 { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 1rem; }
+  .card.saas { border-top: 3px solid var(--accent); }
+  .card.onprem { border-top: 3px solid #10b981; }
+  h2 { font-size: 1.35rem; font-weight: 700; color: #fff; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.1rem; font-weight: 600; color: var(--accent); margin: 1.8rem 0 0.7rem; }
+  h4 { font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 1.2rem 0 0.5rem; }
+  p { color: var(--text); margin-bottom: 1rem; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.4em; font-family: monospace; font-size: 0.88em; color: #a5f3fc; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1rem 0 1.5rem; }
+  pre code { background: none; border: none; padding: 0; color: #e2e8f0; font-size: 0.85rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.9rem; }
+  th { background: var(--surface); color: var(--muted); text-align: left; padding: 0.6rem 0.9rem; border: 1px solid var(--border); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+  td { padding: 0.6rem 0.9rem; border: 1px solid var(--border); }
+  tr:nth-child(even) td { background: var(--surface); }
+  ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.3rem; }
+  .arch { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.82rem; white-space: pre; overflow-x: auto; margin: 1rem 0 1.5rem; color: #94a3b8; }
+  .phase { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1rem 0; }
+  .phase h4 { margin-top: 0; }
+  .decision-matrix td:first-child { font-weight: 500; }
+  .decision-matrix td:last-child { color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>SaaS vs On-Premises Deployment Plan</h1>
+    <div class="meta">
+      <span>Version 1.0</span>
+      <span>2026-04-01</span>
+      <span class="badge">Planning</span>
+    </div>
+  </header>
+
+  <h2>1. Overview</h2>
+  <div class="mode-cards">
+    <div class="card saas">
+      <h3>☁️ SaaS</h3>
+      <ul>
+        <li>We host everything</li>
+        <li>We own the API keys</li>
+        <li>Continuous upgrades</li>
+        <li>Our cloud (Supabase/AWS)</li>
+        <li>Subscription + usage pricing</li>
+        <li>We enforce metering (hard truth)</li>
+      </ul>
+    </div>
+    <div class="card onprem">
+      <h3>🏠 On-Premises</h3>
+      <ul>
+        <li>Customer hosts</li>
+        <li>Customer provides API keys</li>
+        <li>Customer-controlled upgrades</li>
+        <li>Customer's environment</li>
+        <li>Annual license fee</li>
+        <li>License agent or self-reported</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>2. SaaS Deployment</h2>
+
+  <h3>2.1 Architecture</h3>
+  <div class="arch">
+                  ┌──────────────────────────────────────────┐
+                  │           stream2stack.com               │
+                  │                                          │
+User Browser ────►│  Next.js (Vercel / Cloudflare Pages)    │
+                  │                                          │
+                  │  FastAPI (Railway / Fly.io / ECS)        │
+                  │    ├─ Anthropic API (Claude)             │
+                  │    ├─ OpenAI API (embeddings)            │
+                  │    ├─ Firecrawl API                      │
+                  │    ├─ YouTube Data API                   │
+                  │    └─ Resend (email)                     │
+                  │                                          │
+                  │  Supabase (managed Postgres + pgvector)  │
+                  │  Stripe (billing + metered usage)        │
+                  └──────────────────────────────────────────┘</div>
+
+  <h3>2.2 SaaS Infrastructure</h3>
+  <table>
+    <tr><th>Component</th><th>Technology</th><th>Notes</th></tr>
+    <tr><td>Auth</td><td>Supabase Auth (JWT)</td><td>Already partially wired in Phase 3</td></tr>
+    <tr><td>Billing</td><td>Stripe Subscriptions + Metered</td><td>Plan upgrades, overage invoicing</td></tr>
+    <tr><td>Email</td><td>Resend</td><td>Newsletter delivery + product emails</td></tr>
+    <tr><td>Observability</td><td>Sentry + Datadog</td><td>Errors + APM</td></tr>
+    <tr><td>CDN</td><td>Cloudflare</td><td>Frontend assets + DDoS protection</td></tr>
+  </table>
+
+  <h3>2.3 Tenant Isolation (Row-Level Security)</h3>
+  <pre><code>-- RLS on newsletters table
+ALTER TABLE newsletters ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "user_owns_newsletters"
+  ON newsletters FOR ALL
+  USING (auth.uid()::text = user_id);
+
+-- Team plan: org members see all org newsletters
+CREATE POLICY "org_members_see_newsletters"
+  ON newsletters FOR SELECT
+  USING (
+    org_id IS NOT NULL AND
+    org_id IN (
+      SELECT org_id FROM org_members WHERE user_id = auth.uid()::text
+    )
+  );</code></pre>
+
+  <h3>2.4 SaaS Pricing Strategy</h3>
+  <pre><code>Revenue = MRR (subscriptions) + Overage (usage above plan limit)
+
+MRR drivers:
+  Free → Pro      (newsletter limit, email sending)
+  Pro → Team      (seat limit, custom prompts feature)
+  Team → Enterprise (SLA, data residency, SSO)
+
+Overage drivers:
+  Team plan: LLM token overage at $0.015/1K tokens
+  Enterprise: negotiated rate</code></pre>
+
+  <h3>2.5 SaaS Checklist</h3>
+  <div class="phase">
+    <ul>
+      <li>☐ Supabase Auth: replace DEMO_USER_ID with real JWT claim</li>
+      <li>☐ user_settings: add plan_id, stripe_customer_id, org_id columns</li>
+      <li>☐ Stripe: product + price objects for all tiers</li>
+      <li>☐ Stripe webhooks: subscription lifecycle events</li>
+      <li>☐ Quota gates: FastAPI middleware on all mutating endpoints</li>
+      <li>☐ RLS: policies on all tables</li>
+      <li>☐ GDPR: DELETE /users/{id} cascades all user data</li>
+      <li>☐ Observability: Sentry DSN, structured logging</li>
+      <li>☐ Status page: betteruptime.com or statuspage.io</li>
+    </ul>
+  </div>
+
+  <h2>3. On-Premises Deployment</h2>
+
+  <h3>3.1 Architecture</h3>
+  <div class="arch">
+Customer's Environment
+┌────────────────────────────────────────────────────────────────────┐
+│                                                                    │
+│   Docker Compose / Kubernetes                                      │
+│     ├─ stream2stack-backend  (FastAPI container)                   │
+│     ├─ stream2stack-frontend (Next.js container)                   │
+│     └─ postgres + pgvector                                         │
+│                                                                    │
+│   Customer provides their own external API keys:                   │
+│     ├─ ANTHROPIC_API_KEY   (or local Ollama — fully air-gapped)    │
+│     ├─ OPENAI_API_KEY      (or Ollama nomic-embed-text)            │
+│     ├─ FIRECRAWL_API_KEY   (optional)                              │
+│     └─ YOUTUBE_API_KEY                                             │
+│                                                                    │
+│   License Agent (sidecar):                                         │
+│     └─ Checks license validity + reports aggregate usage           │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+          │  usage heartbeat (opt-in)
+          ▼
+  stream2stack License Server (our infrastructure)</div>
+
+  <h3>3.2 Distribution Formats</h3>
+  <table>
+    <tr><th>Format</th><th>Who</th><th>When</th></tr>
+    <tr><td>Docker Compose bundle</td><td>SMB customers</td><td>Standard on-prem</td></tr>
+    <tr><td>Helm chart</td><td>Enterprise Kubernetes</td><td>Large enterprise</td></tr>
+    <tr><td>Air-gapped tarball</td><td>Gov, finance</td><td>No internet required</td></tr>
+    <tr><td>Cloud Marketplace listing</td><td>AWS/Azure/GCP buyers</td><td>Self-serve enterprise</td></tr>
+  </table>
+
+  <h3>3.3 On-Prem Feature Tiers</h3>
+  <table>
+    <tr><th>Feature</th><th>Standard</th><th>Professional</th><th>Enterprise</th></tr>
+    <tr><td>Newsletter generation</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Ollama (air-gapped LLM)</td><td>✓</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Custom system prompts</td><td>✗</td><td>✓</td><td>✓</td></tr>
+    <tr><td>Multi-user / seats</td><td>1 seat</td><td>Up to 10</td><td>Unlimited</td></tr>
+    <tr><td>SSO / SAML</td><td>✗</td><td>✗</td><td>✓</td></tr>
+    <tr><td>Audit logging export</td><td>✗</td><td>✓</td><td>✓</td></tr>
+    <tr><td>White-label</td><td>✗</td><td>✗</td><td>✓</td></tr>
+  </table>
+
+  <h3>3.4 On-Prem Metering Strategy</h3>
+  <table>
+    <tr><th>Option</th><th>Tier</th><th>How</th></tr>
+    <tr><td>Trust-based</td><td>Standard</td><td>Customer self-reports seat count at renewal; license key encodes limit</td></tr>
+    <tr><td>License Agent</td><td>Professional / Enterprise</td><td>Sidecar records aggregate counts only (no PII, no content); weekly heartbeat</td></tr>
+    <tr><td>Air-gapped cert</td><td>Enterprise / Gov</td><td>Time-limited signed certificate; renewal via manual CSV + new cert issuance</td></tr>
+  </table>
+
+  <h3>3.5 On-Prem Checklist</h3>
+  <div class="phase">
+    <ul>
+      <li>☐ Docker images: stream2stack/backend:x.y.z, stream2stack/frontend:x.y.z</li>
+      <li>☐ Postgres migration runner (not Supabase-specific)</li>
+      <li>☐ Replace Supabase client calls with generic postgres_client fallback</li>
+      <li>☐ License agent sidecar service (reads S2S_LICENSE_KEY)</li>
+      <li>☐ License server: minimal FastAPI at api.stream2stack.com/license</li>
+      <li>☐ Offline cert generator: internal CLI tool for air-gapped customers</li>
+      <li>☐ Helm chart with values.yaml</li>
+      <li>☐ Customer portal: license download, version history, support</li>
+      <li>☐ Documentation: install guide, upgrade runbook, air-gap guide</li>
+    </ul>
+  </div>
+
+  <h2>4. Decision Matrix</h2>
+  <table class="decision-matrix">
+    <tr><th>Customer Requirement</th><th>Recommended Mode</th></tr>
+    <tr><td>Quick start, no ops overhead</td><td>SaaS</td></tr>
+    <tr><td>Data must not leave premises</td><td>On-Prem</td></tr>
+    <tr><td>Air-gapped network</td><td>On-Prem (air-gap mode)</td></tr>
+    <tr><td>Custom LLM / Ollama</td><td>On-Prem</td></tr>
+    <tr><td>White-label</td><td>On-Prem Enterprise</td></tr>
+    <tr><td>&lt; 5 users</td><td>SaaS Pro</td></tr>
+    <tr><td>&gt; 25 users</td><td>SaaS Enterprise or On-Prem</td></tr>
+  </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Licensing Plan — Stream2Stack</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --border: #2d3142;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #6366f1;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+    --code-bg: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; padding: 2rem; }
+  .container { max-width: 900px; margin: 0 auto; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  header h1 { font-size: 2rem; font-weight: 700; color: #fff; }
+  .meta { display: flex; gap: 1.5rem; margin-top: 0.5rem; color: var(--muted); font-size: 0.85rem; }
+  .badge { background: var(--accent); color: #fff; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  h2 { font-size: 1.35rem; font-weight: 700; color: #fff; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.1rem; font-weight: 600; color: var(--accent); margin: 1.8rem 0 0.7rem; }
+  h4 { font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 1.2rem 0 0.5rem; }
+  p { color: var(--text); margin-bottom: 1rem; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.4em; font-family: monospace; font-size: 0.88em; color: #a5f3fc; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1rem 0 1.5rem; }
+  pre code { background: none; border: none; padding: 0; color: #e2e8f0; font-size: 0.85rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.9rem; }
+  th { background: var(--surface); color: var(--muted); text-align: left; padding: 0.6rem 0.9rem; border: 1px solid var(--border); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+  td { padding: 0.6rem 0.9rem; border: 1px solid var(--border); }
+  tr:nth-child(even) td { background: var(--surface); }
+  ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.3rem; }
+  .flow { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.82rem; white-space: pre; overflow-x: auto; margin: 1rem 0 1.5rem; color: #94a3b8; }
+  .phase { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1rem 0; }
+  .phase h4 { margin-top: 0; }
+  .callout { background: var(--surface); border-left: 3px solid var(--yellow); border-radius: 6px; padding: 1rem 1.25rem; margin: 1.5rem 0; }
+  .callout p { margin: 0; }
+  .tier-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; }
+  .tier-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+  .tier-card h4 { color: var(--accent); margin-top: 0; }
+  .tier-card .price { font-size: 1.3rem; font-weight: 700; color: #fff; margin: 0.5rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Licensing Plan</h1>
+    <div class="meta">
+      <span>Version 1.1</span>
+      <span>2026-04-03</span>
+      <span class="badge" style="background:var(--green)">Partially Implemented</span>
+    </div>
+  </header>
+
+  <h2>1. Overview</h2>
+  <p>Stream2Stack uses two licensing strategies: <strong>SaaS</strong> (ToS + Stripe subscription, no key required) and <strong>On-Premises</strong> (cryptographic license key controlling features, seat limits, and expiry).</p>
+
+  <h2>2. License Key Design</h2>
+
+  <h3>2.1 Key Structure (JWT-based)</h3>
+  <pre><code>Format: S2S-&lt;base64url(header)&gt;.&lt;base64url(payload)&gt;.&lt;base64url(signature)&gt;
+
+Payload:
+{
+  "license_id":     "lic_abc123",
+  "customer_id":    "cust_xyz789",
+  "customer_name":  "Acme Corp",
+  "plan":           "professional",
+  "seats":          10,
+  "issued_at":      1743724800,
+  "expires_at":     1775260800,
+  "features": {
+    "custom_prompts": true,
+    "audit_logs":     true,
+    "sso":            false,
+    "white_label":    false,
+    "air_gap":        false
+  }
+}</code></pre>
+
+  <h3>2.2 License Validation</h3>
+  <pre><code># backend/services/license.py
+import jwt, os
+from functools import lru_cache
+
+_PUBLIC_KEY = os.getenv("S2S_LICENSE_PUBLIC_KEY", "")  # RSA-2048 PEM
+
+@lru_cache(maxsize=1)
+def validate_license() -> dict:
+    raw_key = os.getenv("S2S_LICENSE_KEY", "")
+    if not raw_key:
+        raise LicenseError("S2S_LICENSE_KEY not set.")
+
+    token = raw_key.removeprefix("S2S-")
+
+    try:
+        return jwt.decode(token, _PUBLIC_KEY, algorithms=["RS256"])
+    except jwt.ExpiredSignatureError:
+        raise LicenseError("License has expired. Renew at stream2stack.com/renew")
+    except jwt.InvalidTokenError as e:
+        raise LicenseError(f"Invalid license key: {e}")
+
+
+def is_feature_enabled(feature: str) -> bool:
+    try:
+        return validate_license().get("features", {}).get(feature, False)
+    except LicenseError:
+        return False
+
+
+def get_seat_limit() -> int | None:
+    try:
+        return validate_license().get("seats")
+    except LicenseError:
+        return 1  # fail closed</code></pre>
+
+  <h3>2.3 Hard Stop on Invalid License</h3>
+  <pre><code># backend/main.py — lifespan startup
+if os.getenv("S2S_DEPLOY_MODE") == "onprem":
+    try:
+        payload = validate_license()
+        logger.info("License valid: plan=%s, expires=%s",
+                    payload["plan"],
+                    datetime.fromtimestamp(payload["expires_at"]).date())
+    except LicenseError as e:
+        logger.critical("LICENSE INVALID — server will not start: %s", e)
+        raise SystemExit(1)</code></pre>
+
+  <h2>3. License Enforcement Points</h2>
+
+  <h3>3.1 Feature Gates</h3>
+  <pre><code># Gate on a premium feature
+@router.put("/prompts/system")
+async def update_system_prompt(body: PromptUpdateRequest):
+    if os.getenv("S2S_DEPLOY_MODE") == "onprem":
+        if not is_feature_enabled("custom_prompts"):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "license_feature_unavailable",
+                    "feature": "custom_prompts",
+                    "upgrade_url": "https://stream2stack.com/upgrade",
+                }
+            )</code></pre>
+
+  <h3>3.2 Seat Enforcement</h3>
+  <pre><code># backend/services/seat_manager.py
+async def check_seat_available(user_id: str) -> None:
+    limit = get_seat_limit()
+    if limit is None:
+        return  # unlimited plan
+
+    active_count = await count_active_sessions()
+    if active_count >= limit and not await user_has_active_session(user_id):
+        raise HTTPException(
+            status_code=402,
+            detail={
+                "code": "seat_limit_reached",
+                "seats_used": active_count,
+                "seats_licensed": limit,
+            }
+        )</code></pre>
+
+  <h3>3.3 License Status Endpoint</h3>
+  <pre><code>GET /license/status   # on-prem only
+
+Response:
+{
+  "plan": "professional",
+  "customer": "Acme Corp",
+  "seats_licensed": 10,
+  "seats_active": 7,
+  "expires_at": "2027-04-01",
+  "days_remaining": 365,
+  "features": {
+    "custom_prompts": true,
+    "audit_logs": true,
+    "sso": false
+  }
+}</code></pre>
+
+  <h3>3.4 Expiry Behaviour</h3>
+  <table>
+    <tr><th>Days to Expiry</th><th>Action</th></tr>
+    <tr><td>30 days</td><td>Daily warning logged, renewal email sent</td></tr>
+    <tr><td>14 days</td><td>UI banner shown to all users</td></tr>
+    <tr><td>0 (expired)</td><td>Read-only mode: view newsletters, no generation</td></tr>
+    <tr><td>–14 days (grace)</td><td>Full lockout — all endpoints return 402</td></tr>
+  </table>
+
+  <h2>4. License Issuance Workflows</h2>
+
+  <h3>4.1 Self-Serve (Online Purchase)</h3>
+  <div class="flow">Customer visits stream2stack.com/on-prem
+      │
+      ▼
+  Selects plan + seats → Stripe Checkout
+      │
+      ▼
+  Stripe webhook → POST /license/issue
+  {customer_id, plan, seats, duration_days}
+      │
+      ▼
+  License Server:
+    1. Generate JWT payload
+    2. Sign with RSA-2048 private key
+    3. Store in license_records table
+    4. Email "S2S-&lt;token&gt;" + install guide
+      │
+      ▼
+  Customer: sets S2S_LICENSE_KEY in .env</div>
+
+  <h3>4.2 Enterprise / Air-Gapped</h3>
+  <div class="flow">Sales agrees on plan + seats + duration
+      │
+      ▼
+  Internal CLI (ops team):
+  $ s2s-license issue \
+      --customer "Acme Corp" \
+      --plan enterprise \
+      --seats unlimited \
+      --days 365 \
+      --features sso,white_label,air_gap \
+      --output acme-license.txt
+      │
+      ▼
+  License file emailed to customer
+  Backed up in CRM + license_records DB</div>
+
+  <h2>5. License Database (Our Side)</h2>
+  <pre><code>CREATE TABLE license_records (
+    license_id       TEXT PRIMARY KEY,
+    customer_id      TEXT NOT NULL,
+    customer_name    TEXT NOT NULL,
+    customer_email   TEXT NOT NULL,
+    plan             TEXT NOT NULL,
+    seats            INTEGER,           -- NULL = unlimited
+    features         JSONB NOT NULL,
+    issued_at        TIMESTAMPTZ NOT NULL,
+    expires_at       TIMESTAMPTZ NOT NULL,
+    renewed_from     TEXT REFERENCES license_records(license_id),
+    revoked_at       TIMESTAMPTZ,
+    revocation_reason TEXT,
+    stripe_payment_id TEXT,
+    created_at       TIMESTAMPTZ DEFAULT now()
+);</code></pre>
+
+  <h2>6. Security &amp; Anti-Tamper</h2>
+  <table>
+    <tr><th>Threat</th><th>Mitigation</th></tr>
+    <tr><td>Key sharing between customers</td><td>customer_id in payload; seat limit; telemetry agent reports hostname</td></tr>
+    <tr><td>Clock rollback attack</td><td>License server validates issued_at is not in future; monotonic counters</td></tr>
+    <tr><td>JWT forging</td><td>RSA-2048 public key embedded in binary; private key never leaves license server</td></tr>
+    <tr><td>Running without network</td><td>Offline certs valid 90 days; renewal requires online check or manual CSV</td></tr>
+  </table>
+
+  <h2>7. Community Edition (CE) Strategy</h2>
+  <div class="tier-cards">
+    <div class="tier-card">
+      <h4>Community Edition</h4>
+      <div class="price">Free</div>
+      <ul>
+        <li>Apache 2.0 open-source</li>
+        <li>Single user</li>
+        <li>Ollama only</li>
+        <li>No email delivery</li>
+        <li>No web crawling</li>
+        <li>Self-hosted only</li>
+      </ul>
+    </div>
+    <div class="tier-card">
+      <h4>Commercial (On-Prem)</h4>
+      <div class="price">Standard → Enterprise</div>
+      <ul>
+        <li>Proprietary license</li>
+        <li>All API providers</li>
+        <li>Email delivery</li>
+        <li>Multi-seat</li>
+        <li>SSO (Enterprise)</li>
+        <li>White-label (Enterprise)</li>
+      </ul>
+    </div>
+    <div class="tier-card">
+      <h4>SaaS</h4>
+      <div class="price">Free → Enterprise</div>
+      <ul>
+        <li>ToS + Stripe</li>
+        <li>No license key</li>
+        <li>Quota gates</li>
+        <li>Hosted by us</li>
+        <li>Continuous updates</li>
+        <li>Usage-based overage</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <p><strong>Dual-license model:</strong> CE code is open-source (Apache 2.0). Commercial additions (multi-seat, SSO, white-label, advanced analytics) are proprietary. Clear feature matrix at stream2stack.com/pricing drives top-of-funnel from CE to paid.</p>
+  </div>
+
+  <h2>8. Implementation Phases</h2>
+
+  <div class="phase">
+    <h4>Phase A — Foundation ✅ Complete</h4>
+    <ul>
+      <li>☐ RSA-2048 key pair generation + AWS KMS storage</li>
+      <li>☐ License JWT schema finalized</li>
+      <li>☐ License issuance CLI tool (internal ops)</li>
+      <li>☑ <code>license.py</code> service: validate, feature_check, seat_check — <code>backend/services/license.py</code></li>
+      <li>☑ <code>S2S_DEPLOY_MODE</code> env var; startup hard-stop on invalid license — <code>backend/main.py</code></li>
+      <li>☑ <code>GET /license/status</code> endpoint — <code>backend/api/routes/license.py</code></li>
+    </ul>
+    <p style="color:var(--muted);font-size:0.85rem;margin-top:0.5rem">Key generation and issuance CLI are ops-side tooling, not deployed with the app.</p>
+  </div>
+
+  <div class="phase">
+    <h4>Phase B — Gate Wiring (Week 3)</h4>
+    <ul>
+      <li>☐ Feature gates: custom_prompts, audit_logs, sso, white_label</li>
+      <li>☐ Seat enforcement middleware</li>
+      <li>☐ Expiry warnings: log at 30 days, UI banner at 14 days</li>
+      <li>☐ Read-only mode on expiry</li>
+    </ul>
+  </div>
+
+  <div class="phase">
+    <h4>Phase C — License Server (Week 4–5)</h4>
+    <ul>
+      <li>☐ License server FastAPI (separate deployment)</li>
+      <li>☐ license_records table</li>
+      <li>☐ POST /license/issue + POST /license/revoke</li>
+      <li>☐ Renewal flow + 60/30/7-day email sequence</li>
+      <li>☐ Customer portal: license download, renewal, seat history</li>
+    </ul>
+  </div>
+
+  <div class="phase">
+    <h4>Phase D — Stripe + Packaging (Week 6–7)</h4>
+    <ul>
+      <li>☐ Stripe Products: Standard/Professional/Enterprise</li>
+      <li>☐ Checkout → license auto-issued on payment webhook</li>
+      <li>☐ Docker Hub publishing (private repo for paid tiers)</li>
+      <li>☐ Helm chart + air-gapped tarball build pipeline</li>
+    </ul>
+  </div>
+
+  <div class="phase">
+    <h4>Phase E — Community Edition (Future)</h4>
+    <ul>
+      <li>☐ CE feature flag set defined</li>
+      <li>☐ Apache 2.0 LICENSE file in repo</li>
+      <li>☐ CE Docker image (no license check)</li>
+      <li>☐ README CE vs Commercial comparison table</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

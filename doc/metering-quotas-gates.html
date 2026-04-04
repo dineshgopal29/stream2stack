@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Metering, Quotas & Gates — Stream2Stack</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --border: #2d3142;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #6366f1;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+    --code-bg: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; padding: 2rem; }
+  .container { max-width: 900px; margin: 0 auto; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  header h1 { font-size: 2rem; font-weight: 700; color: #fff; }
+  .meta { display: flex; gap: 1.5rem; margin-top: 0.5rem; color: var(--muted); font-size: 0.85rem; }
+  .badge { background: var(--accent); color: #fff; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  h2 { font-size: 1.35rem; font-weight: 700; color: #fff; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.1rem; font-weight: 600; color: var(--accent); margin: 1.8rem 0 0.7rem; }
+  h4 { font-size: 0.95rem; font-weight: 600; color: var(--muted); margin: 1.2rem 0 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  p { color: var(--text); margin-bottom: 1rem; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.4em; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.88em; color: #a5f3fc; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1rem 0 1.5rem; }
+  pre code { background: none; border: none; padding: 0; color: #e2e8f0; font-size: 0.85rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.9rem; }
+  th { background: var(--surface); color: var(--muted); text-align: left; padding: 0.6rem 0.9rem; border: 1px solid var(--border); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+  td { padding: 0.6rem 0.9rem; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--surface); }
+  ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.3rem; color: var(--text); }
+  .callout { background: var(--surface); border-left: 3px solid var(--accent); border-radius: 6px; padding: 1rem 1.25rem; margin: 1.5rem 0; }
+  .callout p { margin: 0; }
+  .phase { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin: 1rem 0; }
+  .phase h4 { margin-top: 0; }
+  .phase ul { margin-bottom: 0; }
+  .check { color: var(--muted); }
+  .check::marker { content: "☐ "; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Metering, Quotas &amp; Gates</h1>
+    <div class="meta">
+      <span>Version 1.1</span>
+      <span>2026-04-03</span>
+      <span class="badge" style="background:var(--green)">Implemented</span>
+    </div>
+  </header>
+
+  <h2>1. Purpose</h2>
+  <p>To price Stream2Stack correctly — and protect it from abuse — we must measure every resource consumed, enforce hard and soft limits per plan tier, and expose that data to both operators and customers.</p>
+
+  <h2>2. What We Meter</h2>
+
+  <h3>2.1 LLM / AI Operations</h3>
+  <table>
+    <tr><th>Operation</th><th>Model</th><th>Unit</th><th>Approx Cost</th></tr>
+    <tr><td>Concept extraction</td><td>Claude Sonnet 4.6</td><td>input + output tokens</td><td>$3/$15 per M tokens</td></tr>
+    <tr><td>Blog post generation</td><td>Claude Sonnet 4.6</td><td>input + output tokens</td><td>$3/$15 per M tokens</td></tr>
+    <tr><td>Newsletter assembly</td><td>Claude Sonnet 4.6</td><td>input + output tokens</td><td>$3/$15 per M tokens</td></tr>
+    <tr><td>Text embedding</td><td>text-embedding-3-small</td><td>input tokens</td><td>$0.02 per M tokens</td></tr>
+  </table>
+
+  <h4>Example Cost Per Newsletter (5 videos)</h4>
+  <pre><code>Concept extraction × 5:    ~1,000 input + 300 output tokens each
+Blog generation × 5:       ~4,000 input + 2,500 output tokens each
+Newsletter assembly × 1:   ~10,000 input + 1,500 output tokens
+
+Total input  ≈ 35,500 tokens × $0.003/K  = ~$0.107
+Total output ≈ 14,000 tokens × $0.015/K  = ~$0.210
+Total AI cost per newsletter             ≈ $0.32</code></pre>
+
+  <h3>2.2 External API Operations</h3>
+  <table>
+    <tr><th>Operation</th><th>Provider</th><th>Unit</th><th>Cost</th></tr>
+    <tr><td>Video metadata fetch</td><td>YouTube Data API</td><td>quota units</td><td>Free within quota</td></tr>
+    <tr><td>Web page scrape</td><td>Firecrawl</td><td>credits per URL</td><td>~$0.002/page</td></tr>
+    <tr><td>Email send</td><td>Resend</td><td>emails sent</td><td>~$0.001/email</td></tr>
+    <tr><td>Vector storage</td><td>Supabase</td><td>GB-months</td><td>~$0.125/GB</td></tr>
+  </table>
+
+  <h2>3. Metering Data Model</h2>
+
+  <h3>3.1 Database Schema</h3>
+  <pre><code>-- Every AI call produces a usage_event row
+CREATE TABLE usage_events (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         TEXT NOT NULL,
+    org_id          TEXT,
+    event_type      TEXT NOT NULL,    -- 'llm_call' | 'embedding' | 'scrape' | 'email'
+    operation       TEXT NOT NULL,    -- 'concept_extraction' | 'blog_generation' | ...
+    model           TEXT,
+    input_tokens    INTEGER,
+    output_tokens   INTEGER,
+    total_tokens    INTEGER GENERATED ALWAYS AS (
+                        COALESCE(input_tokens,0) + COALESCE(output_tokens,0)
+                    ) STORED,
+    cost_usd        NUMERIC(10, 6),
+    resource_id     UUID,
+    metadata        JSONB DEFAULT '{}',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);</code></pre>
+
+  <h3>3.2 Cost Rate Table</h3>
+  <pre><code># backend/services/cost_rates.py
+_RATES: dict[str, dict[str, float]] = {
+    "claude-sonnet-4-6": {
+        "input_per_m":  3.00,   # USD per million input tokens
+        "output_per_m": 15.00,
+    },
+    "claude-haiku-4-5-20251001": {
+        "input_per_m":  0.80,
+        "output_per_m": 4.00,
+    },
+    "text-embedding-3-small": {
+        "input_per_m":  0.02,
+        "output_per_m": 0.00,
+    },
+}
+
+def compute_cost(model: str, input_tokens: int, output_tokens: int) -> float:
+    rates = _RATES.get(model, {"input_per_m": 0, "output_per_m": 0})
+    return (
+        input_tokens  / 1_000_000 * rates["input_per_m"] +
+        output_tokens / 1_000_000 * rates["output_per_m"]
+    )</code></pre>
+
+  <h3>3.3 Intercept Every Claude Call</h3>
+  <pre><code>def _chat(client, model, backend, system, user, max_tokens,
+          user_id=None, operation=None) -> tuple[str, UsageEvent | None]:
+    if backend == "anthropic":
+        message = client.messages.create(
+            model=model, max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        content = message.content[0].text.strip()
+
+        event = UsageEvent(
+            user_id=user_id or "unknown",
+            event_type="llm_call",
+            operation=operation or "unknown",
+            model=model,
+            input_tokens=message.usage.input_tokens,
+            output_tokens=message.usage.output_tokens,
+            cost_usd=compute_cost(model, message.usage.input_tokens,
+                                   message.usage.output_tokens),
+        )
+        return content, event</code></pre>
+
+  <h2>4. Quota Tiers</h2>
+  <table>
+    <tr><th>Limit</th><th>Free</th><th>Pro ($29/mo)</th><th>Team ($99/mo)</th><th>Enterprise</th></tr>
+    <tr><td>Newsletters / month</td><td>3</td><td>20</td><td>100</td><td>Unlimited</td></tr>
+    <tr><td>Videos ingested / month</td><td>20</td><td>200</td><td>1,000</td><td>Unlimited</td></tr>
+    <tr><td>Emails sent / month</td><td>0</td><td>20</td><td>100</td><td>Unlimited</td></tr>
+    <tr><td>LLM tokens / month</td><td>500K</td><td>5M</td><td>25M</td><td>Unlimited</td></tr>
+    <tr><td>Seats</td><td>1</td><td>1</td><td>25</td><td>Custom</td></tr>
+    <tr><td>Overage</td><td>No</td><td>No</td><td>Yes (+$0.015/1K tokens)</td><td>Yes (negotiated)</td></tr>
+  </table>
+
+  <h2>5. Gates — Enforcement</h2>
+  <table>
+    <tr><th>Gate Type</th><th>Trigger</th><th>Action</th></tr>
+    <tr><td><strong>Hard gate</strong></td><td>Quota at 100%</td><td>HTTP 402 quota_exceeded</td></tr>
+    <tr><td><strong>Soft gate</strong></td><td>Quota at 80%</td><td>Allow + X-Quota-Warning header</td></tr>
+    <tr><td><strong>Rate gate</strong></td><td>&gt;N req/min per user</td><td>HTTP 429 rate_limit_exceeded</td></tr>
+    <tr><td><strong>Overage gate</strong></td><td>100% + overage allowed</td><td>Allow + record overage charge</td></tr>
+    <tr><td><strong>Feature gate</strong></td><td>Feature not on plan</td><td>HTTP 403 feature_not_available</td></tr>
+  </table>
+
+  <h3>Gate Enforcement in FastAPI</h3>
+  <pre><code>class QuotaGate:
+    def __init__(self, resource: str, increment: int = 1):
+        self.resource = resource
+        self.increment = increment
+
+    async def check_and_reserve(self, user_id: str, plan_id: str) -> None:
+        ledger = await get_quota_ledger(user_id)
+        limits = await get_plan_limits(plan_id)
+
+        used  = getattr(ledger, f"{self.resource}_used", 0)
+        limit = getattr(limits, f"{self.resource}_per_month", None)
+
+        if limit is None:
+            return  # unlimited plan
+
+        if (used / limit) >= 0.8:
+            pass  # inject warning header
+
+        if used >= limit:
+            if limits.overage_allowed:
+                await record_overage(user_id, self.resource, self.increment)
+                return
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "code": "quota_exceeded",
+                    "resource": self.resource,
+                    "used": used,
+                    "limit": limit,
+                    "upgrade_url": "https://stream2stack.com/pricing",
+                }
+            )</code></pre>
+
+  <h2>6. Usage Dashboard API</h2>
+  <pre><code>GET /usage/summary?user_id=&amp;period=2026-04
+GET /usage/events?user_id=&amp;from=&amp;to=&amp;type=
+GET /usage/cost?user_id=&amp;period=2026-04
+GET /admin/usage?org_id=&amp;period=</code></pre>
+
+  <h3>Summary Response</h3>
+  <pre><code>{
+  "period": "2026-04",
+  "plan": "pro",
+  "quotas": {
+    "newsletters":  { "used": 14, "limit": 20, "pct": 70 },
+    "videos":       { "used": 87, "limit": 200, "pct": 43 },
+    "llm_tokens":   { "used": 2100000, "limit": 5000000, "pct": 42 }
+  },
+  "cost_usd": {
+    "llm_total": 4.72,
+    "embeddings": 0.04,
+    "scrapes": 0.18,
+    "grand_total": 4.95
+  }
+}</code></pre>
+
+  <h2>7. Implementation Phases</h2>
+
+  <div class="phase">
+    <h4>Phase A — Token Capture ✅ Complete</h4>
+    <ul>
+      <li class="check">☑ Add <code>usage_events</code>, <code>quota_ledger</code> tables — <code>supabase/migrations/002_metering_schema.sql</code> + <code>docker/init-db.sql</code></li>
+      <li class="check">☑ Add <code>plan_quotas</code> table + seed data (free/pro/team/enterprise)</li>
+      <li class="check">☑ Create <code>cost_rates.py</code> with pricing constants</li>
+      <li class="check">☑ Modify <code>_chat()</code> in <code>blog_generator.py</code> to write <code>UsageEvent</code></li>
+      <li class="check">☑ Async drain loop in <code>metering.py</code></li>
+      <li class="check">☑ <code>GET /usage/summary</code> endpoint</li>
+    </ul>
+  </div>
+
+  <div class="phase">
+    <h4>Phase B — Quota Gates ✅ Complete</h4>
+    <ul>
+      <li class="check">☑ <code>QuotaGate</code> class — <code>backend/services/quota_gate.py</code></li>
+      <li class="check">☑ Gate on <code>POST /newsletters/generate</code></li>
+      <li class="check">☑ Gate on <code>POST /videos/ingest</code></li>
+      <li class="check">☑ Gate on <code>POST /newsletters/{id}/send</code></li>
+      <li class="check">☑ <code>X-Quota-Warning</code> header injection at 80%</li>
+      <li class="check">☑ Feature gates for <code>email_send</code>, <code>api_access</code></li>
+    </ul>
+  </div>
+
+  <div class="phase">
+    <h4>Phase C — Usage Dashboard ✅ Partial</h4>
+    <ul>
+      <li class="check">☑ <code>GET /usage/events</code> with pagination</li>
+      <li class="check">☑ <code>GET /usage/cost</code> with breakdown by operation</li>
+      <li>☐ Frontend: Usage tab in Settings page</li>
+      <li>☐ Monthly usage digest email</li>
+    </ul>
+  </div>
+
+  <div class="phase">
+    <h4>Phase D — Billing Integration (Pending)</h4>
+    <ul>
+      <li>☐ Stripe integration for plan upgrades</li>
+      <li>☐ Stripe metered billing for overage (Team plan)</li>
+      <li>☐ Webhook: <code>customer.subscription.updated</code> → update <code>user_settings.plan_id</code></li>
+      <li>☐ Invoice line items from <code>usage_events</code></li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
