@@ -38,4 +38,7 @@ local_storage/
 # pytest
 .pytest_cache/
 
+# Claude Code
+.claude/
+
 # Docker volumes
