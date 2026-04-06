@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/dinesh/Documents/My_Product/stream2stack/.claude/hooks/auto-git-push.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
