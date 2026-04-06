@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routes import videos, newsletters, settings, usage, cron, license as license_routes
+from api.routes import videos, newsletters, settings, usage, cron, license as license_routes, wiki as wiki_routes
 from db.supabase_client import get_supabase_client
 from services.license import LicenseError, is_deploy_mode_onprem, validate_license
 from services.metering import start_drain_loop
@@ -91,6 +91,7 @@ def create_app() -> FastAPI:
     app.include_router(usage.router,          prefix="/usage",     tags=["Usage & Metering"])
     app.include_router(cron.router,           prefix="/cron",      tags=["Cron / Scheduled Jobs"])
     app.include_router(license_routes.router, prefix="/license",   tags=["License"])
+    app.include_router(wiki_routes.router,    prefix="/wiki",      tags=["Wiki"])
 
     # ---------------------------------------------------------------------------
     # Health check

@@ -1,0 +1,150 @@
+"""
+Wiki knowledge base routes.
+
+POST /wiki/compile              — compile (or incrementally update) the wiki.
+GET  /wiki/pages                — list all pages (filterable by type).
+GET  /wiki/pages/{type}/{slug}  — fetch a single page.
+GET  /wiki/stats                — counts per type, wiki root path.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel
+
+from services import wiki_compiler as compiler_svc
+from services import wiki_store as store
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Request / Response models
+# ---------------------------------------------------------------------------
+
+class CompileRequest(BaseModel):
+    user_id: str = "system"
+    force: bool = False
+    video_ids: list[str] | None = None
+
+
+class WikiPageResponse(BaseModel):
+    title: str
+    slug: str
+    type: str
+    content: str
+    source_ids: list[str]
+    source_hash: str
+    compiled_at: str
+    schema_version: int
+    backlinks: list[str]
+
+
+class CompileResponse(BaseModel):
+    compiled: int
+    skipped: int
+    errors: int
+    pages_written: int
+    total_terms: int | None = None
+    message: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _to_response(page: store.WikiPage) -> WikiPageResponse:
+    return WikiPageResponse(
+        title=page.title,
+        slug=page.slug,
+        type=page.page_type,
+        content=page.content,
+        source_ids=page.source_ids,
+        source_hash=page.source_hash,
+        compiled_at=page.compiled_at,
+        schema_version=page.schema_version,
+        backlinks=page.backlinks,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/compile",
+    response_model=CompileResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Compile the wiki",
+    description=(
+        "Runs the LLM compiler over all ingested videos and writes wiki pages "
+        "to local_storage/wiki/. Incremental by default — only recompiles pages "
+        "whose source videos have changed. Set force=True to recompile everything."
+    ),
+)
+async def compile_wiki(body: CompileRequest) -> CompileResponse:
+    try:
+        result = await asyncio.to_thread(
+            compiler_svc.compile_wiki,
+            user_id=body.user_id,
+            force=body.force,
+            video_ids=body.video_ids,
+        )
+        return CompileResponse(**result)
+    except Exception as exc:
+        logger.exception("Wiki compile failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )
+
+
+@router.get(
+    "/pages",
+    response_model=list[WikiPageResponse],
+    summary="List wiki pages",
+    description="List all compiled wiki pages. Filter by type: concept, tool, or pattern.",
+)
+async def list_pages(
+    type: str | None = Query(None, description="Filter by page type: concept, tool, pattern"),
+) -> list[WikiPageResponse]:
+    if type and type not in store.PAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid type '{type}'. Must be one of: {', '.join(store.PAGE_TYPES)}",
+        )
+    pages = await asyncio.to_thread(store.list_pages, type)
+    return [_to_response(p) for p in pages]
+
+
+@router.get(
+    "/pages/{page_type}/{slug}",
+    response_model=WikiPageResponse,
+    summary="Get a single wiki page",
+)
+async def get_page(page_type: str, slug: str) -> WikiPageResponse:
+    if page_type not in store.PAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid type '{page_type}'. Must be one of: {', '.join(store.PAGE_TYPES)}",
+        )
+    page = await asyncio.to_thread(store.read_page, page_type, slug)
+    if page is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Wiki page '{page_type}/{slug}' not found.",
+        )
+    return _to_response(page)
+
+
+@router.get(
+    "/stats",
+    summary="Wiki statistics",
+    description="Page counts per type and wiki root path.",
+)
+async def get_stats() -> dict:
+    return await asyncio.to_thread(store.wiki_stats)
