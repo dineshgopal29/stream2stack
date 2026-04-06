@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from services import wiki_compiler as compiler_svc
 from services import wiki_store as store
+from services import wiki_query as query_svc
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -51,6 +52,18 @@ class CompileResponse(BaseModel):
     pages_written: int
     total_terms: int | None = None
     message: str | None = None
+
+
+class QueryRequest(BaseModel):
+    question: str
+    user_id: str = "system"
+
+
+class QueryResponse(BaseModel):
+    answer: str
+    sources: list[str]
+    qa_note_slug: str | None = None
+    pages_searched: int
 
 
 # ---------------------------------------------------------------------------
@@ -148,3 +161,35 @@ async def get_page(page_type: str, slug: str) -> WikiPageResponse:
 )
 async def get_stats() -> dict:
     return await asyncio.to_thread(store.wiki_stats)
+
+
+@router.post(
+    "/query",
+    response_model=QueryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Ask a question against the wiki",
+    description=(
+        "Answers a free-form developer question grounded in compiled wiki pages. "
+        "The answer and its source citations are filed as a qa_note in "
+        "local_storage/wiki/qa_notes/."
+    ),
+)
+async def query_wiki(body: QueryRequest) -> QueryResponse:
+    if not body.question.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="question must not be empty.",
+        )
+    try:
+        result = await asyncio.to_thread(
+            query_svc.answer_question,
+            question=body.question,
+            user_id=body.user_id,
+        )
+        return QueryResponse(**result)
+    except Exception as exc:
+        logger.exception("Wiki query failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )

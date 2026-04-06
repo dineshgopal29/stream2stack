@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiki Knowledge Base — Stream2Stack</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --border: #2d3142;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #6366f1;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+    --code-bg: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.7; padding: 2rem; }
+  .container { max-width: 960px; margin: 0 auto; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  header h1 { font-size: 2rem; font-weight: 700; color: #fff; }
+  .meta { display: flex; gap: 1.5rem; margin-top: 0.5rem; color: var(--muted); font-size: 0.85rem; flex-wrap: wrap; }
+  .badge { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+  .badge-green { background: var(--green); color: #000; }
+  .badge-yellow { background: var(--yellow); color: #000; }
+  .badge-muted { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  h2 { font-size: 1.35rem; font-weight: 700; color: #fff; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 1.1rem; font-weight: 600; color: var(--accent); margin: 1.8rem 0 0.7rem; }
+  h4 { font-size: 0.9rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 1.2rem 0 0.5rem; }
+  p { color: var(--text); margin-bottom: 1rem; }
+  code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.15em 0.4em; font-family: monospace; font-size: 0.88em; color: #a5f3fc; }
+  pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1rem 0 1.5rem; }
+  pre code { background: none; border: none; padding: 0; color: #e2e8f0; font-size: 0.85rem; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.9rem; }
+  th { background: var(--surface); color: var(--muted); text-align: left; padding: 0.6rem 0.9rem; border: 1px solid var(--border); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+  td { padding: 0.6rem 0.9rem; border: 1px solid var(--border); }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  ul, ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+  li { margin-bottom: 0.35rem; color: var(--text); }
+  .phase-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin: 1.5rem 0; }
+  .phase-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+  .phase-header h3 { margin: 0; }
+  .arch-diagram { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; font-family: monospace; font-size: 0.82rem; color: #94a3b8; line-height: 1.6; overflow-x: auto; margin: 1rem 0 1.5rem; }
+  .arch-diagram .highlight { color: #6366f1; font-weight: bold; }
+  .arch-diagram .done { color: var(--green); }
+  .arch-diagram .wip { color: var(--yellow); }
+  .arch-diagram .planned { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Wiki Knowledge Base</h1>
+  <div class="meta">
+    <span>Stream2Stack</span>
+    <span class="badge badge-yellow">Phase B In Progress</span>
+    <span>Version 0.2</span>
+    <span>Updated 2026-04-05</span>
+  </div>
+</header>
+
+<h2>Overview</h2>
+<p>The Wiki Knowledge Base treats LLM-powered content synthesis as a <strong>build system</strong>. Raw video transcripts are "source files"; the compiler turns them into structured, auditable Markdown pages; backlinks wire them into a navigable knowledge graph.</p>
+
+<table>
+  <thead><tr><th>Build concept</th><th>Wiki equivalent</th></tr></thead>
+  <tbody>
+    <tr><td>Source files</td><td>Video transcripts in the DB</td></tr>
+    <tr><td>Compiler</td><td><code>wiki_compiler.py</code> — LLM extracts + synthesises</td></tr>
+    <tr><td>Build artifacts</td><td>Markdown pages in <code>local_storage/wiki/</code></td></tr>
+    <tr><td>Incremental rebuild</td><td>Source hash dirty detection per page</td></tr>
+    <tr><td>Linker</td><td><code>[[Double Bracket]]</code> backlinks wired across pages</td></tr>
+    <tr><td>Linter</td><td>Health checker (Phase C)</td></tr>
+  </tbody>
+</table>
+
+<h2>Architecture</h2>
+<div class="arch-diagram">
+<span class="done">Videos (DB)</span><br>
+    │<br>
+    ▼<br>
+<span class="done">Concept Extraction (concept_extraction.py)</span><br>
+    │  terms: concepts, tools, patterns<br>
+    ▼<br>
+<span class="done">Inverted Index: term → [videos]</span><br>
+    │<br>
+    ▼<br>
+<span class="done">LLM Compiler (wiki_compiler.py)</span>          ← one LLM call per unique term<br>
+    │  Markdown: Summary / How It Works /<br>
+    │  Code Example / Patterns &amp; Pitfalls /<br>
+    │  Related Concepts ([[backlinks]])<br>
+    ▼<br>
+<span class="done">Wiki Store (wiki_store.py)</span><br>
+    │  local_storage/wiki/<br>
+    │    <span class="done">concepts/&lt;slug&gt;.md</span><br>
+    │    <span class="done">tools/&lt;slug&gt;.md</span><br>
+    │    <span class="done">patterns/&lt;slug&gt;.md</span><br>
+    │    <span class="done">indexes/all.md</span><br>
+    │    <span class="wip">qa_notes/&lt;slug&gt;.md       ← Phase B</span><br>
+    │    <span class="planned">health/report-&lt;date&gt;.md  ← Phase C</span><br>
+    ▼<br>
+<span class="done">REST API (api/routes/wiki.py)</span><br>
+    <span class="done">POST /wiki/compile</span><br>
+    <span class="done">GET  /wiki/pages</span><br>
+    <span class="done">GET  /wiki/pages/{type}/{slug}</span><br>
+    <span class="done">GET  /wiki/stats</span><br>
+    <span class="wip">POST /wiki/query              ← Phase B</span><br>
+    <span class="planned">GET  /wiki/health             ← Phase C</span>
+</div>
+
+<h2>Page Schema</h2>
+<p>Each wiki page is a <code>.md</code> file with YAML frontmatter. The schema is intentionally simple — replaceable by a Supabase table in a later phase.</p>
+<pre><code>---
+title: "Retrieval-Augmented Generation"
+slug: retrieval-augmented-generation
+type: concept          # concept | tool | pattern | index | health | qa_note
+schema_version: 1
+compiled_at: 2026-04-05T10:00:00+00:00
+source_hash: a3f1b2c9...
+sources:
+  - &lt;video-uuid-1&gt;
+  - &lt;video-uuid-2&gt;
+backlinks:
+  - "Vector Database"
+  - "Embedding"
+---
+
+## Summary
+...
+</code></pre>
+
+<h4>Incremental recompile logic</h4>
+<ul>
+  <li>Page missing → recompile</li>
+  <li><code>schema_version</code> &lt; <code>SCHEMA_VERSION</code> constant → recompile (schema migration)</li>
+  <li><code>source_hash</code> changed (new video added) → recompile</li>
+  <li>Otherwise → skip</li>
+</ul>
+
+<!-- ── PHASE A ── -->
+<h2>Phase A — Compiler</h2>
+<div class="phase-block">
+  <div class="phase-header">
+    <h3>Compiler Pipeline</h3>
+    <span class="badge badge-green">Complete</span>
+  </div>
+
+  <h4>Files</h4>
+  <table>
+    <thead><tr><th>File</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>backend/services/wiki_store.py</code></td><td>Filesystem read/write, slug, hash, backlinks</td></tr>
+      <tr><td><code>backend/services/wiki_compiler.py</code></td><td>Full compile pipeline</td></tr>
+      <tr><td><code>backend/api/routes/wiki.py</code></td><td>REST endpoints</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Endpoints</h4>
+  <table>
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>POST</code></td><td><code>/wiki/compile</code></td><td>Run incremental (or forced) compile</td></tr>
+      <tr><td><code>GET</code></td><td><code>/wiki/pages</code></td><td>List all pages (filterable by <code>?type=</code>)</td></tr>
+      <tr><td><code>GET</code></td><td><code>/wiki/pages/{type}/{slug}</code></td><td>Fetch single page</td></tr>
+      <tr><td><code>GET</code></td><td><code>/wiki/stats</code></td><td>Page counts per type</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Compile request / response</h4>
+  <pre><code>POST /wiki/compile
+{ "user_id": "system", "force": false, "video_ids": null }
+
+→ { "compiled": 12, "skipped": 3, "errors": 0, "pages_written": 12, "total_terms": 15 }</code></pre>
+</div>
+
+<!-- ── PHASE B ── -->
+<h2>Phase B — Q&amp;A with Artifact Filing</h2>
+<div class="phase-block">
+  <div class="phase-header">
+    <h3>Wiki Query Service</h3>
+    <span class="badge badge-yellow">In Progress</span>
+  </div>
+
+  <p>Allow developers to ask free-form questions against the wiki. Answers are grounded in compiled pages, filed back as <code>qa_notes</code>, and returned with source citations.</p>
+
+  <h4>New endpoint</h4>
+  <pre><code>POST /wiki/query
+{ "question": "What are the tradeoffs between RAG and fine-tuning?", "user_id": "alice" }
+
+→ {
+    "answer": "...",
+    "sources": ["concepts/retrieval-augmented-generation", "concepts/fine-tuning"],
+    "qa_note_slug": "what-are-the-tradeoffs-between-rag-and-fine-tuning",
+    "pages_searched": 6
+  }</code></pre>
+
+  <h4>Implementation flow (<code>wiki_query.py</code>)</h4>
+  <ol>
+    <li>Load all compiled wiki pages from the store.</li>
+    <li>Score pages by keyword overlap with the question (no embeddings — fast and deterministic).</li>
+    <li>Pass top-8 pages (≤ 1,500 chars each) as context to the LLM.</li>
+    <li>Extract <code>## Sources</code> block from LLM response; parse slug paths.</li>
+    <li>Write <code>qa_note</code> to <code>local_storage/wiki/qa_notes/&lt;slug&gt;.md</code>.</li>
+    <li>Return answer + sources + qa_note_slug.</li>
+  </ol>
+
+  <h4>Files</h4>
+  <table>
+    <thead><tr><th>File</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>backend/services/wiki_query.py</code></td><td>Q&amp;A pipeline, relevance scoring, qa_note filing</td></tr>
+      <tr><td><code>backend/api/routes/wiki.py</code></td><td><code>POST /wiki/query</code> endpoint added</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ── PHASE C ── -->
+<h2>Phase C — Linter (Planned)</h2>
+<div class="phase-block">
+  <div class="phase-header">
+    <h3>Health Checker</h3>
+    <span class="badge badge-muted">Planned</span>
+  </div>
+  <p>Scheduled health checks detect structural issues in the wiki:</p>
+  <ul>
+    <li><strong>Orphan concepts</strong> — mentioned in backlinks but no page exists</li>
+    <li><strong>Missing code examples</strong> — pages without a <code>## Code Example</code> section</li>
+    <li><strong>Stale pages</strong> — <code>compiled_at</code> older than 30 days with new video activity</li>
+    <li><strong>Contradiction candidates</strong> — same term, conflicting definitions across sources</li>
+    <li><strong>Broken backlinks</strong> — <code>[[Term]]</code> references that have no corresponding page</li>
+  </ul>
+  <p>Output: <code>local_storage/wiki/health/report-&lt;date&gt;.md</code><br>
+  Triggered via: <code>GET /wiki/health</code> or scheduled cron.</p>
+</div>
+
+<!-- ── PHASE D ── -->
+<h2>Phase D — Integration (Planned)</h2>
+<div class="phase-block">
+  <div class="phase-header">
+    <h3>Stream2Stack Integration</h3>
+    <span class="badge badge-muted">Planned</span>
+  </div>
+  <ul>
+    <li>Relevant wiki pages injected into newsletter/blog generation prompts.</li>
+    <li>"Learn more" links in generated content point to wiki slugs.</li>
+    <li>Frontend <code>/wiki</code> route browses the knowledge base.</li>
+  </ul>
+</div>
+
+<h2>Version History</h2>
+<table>
+  <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
+  <tbody>
+    <tr><td>0.1</td><td>2026-04-04</td><td>Initial design — build system metaphor, Phase A spec</td></tr>
+    <tr><td>0.2</td><td>2026-04-05</td><td>Phase A complete; Phase B spec + implementation (Q&amp;A + artifact filing)</td></tr>
+  </tbody>
+</table>
+
+</div>
+</body>
+</html>
