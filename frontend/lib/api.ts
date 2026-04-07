@@ -221,3 +221,61 @@ export async function updateSettings(
   })
   return handleResponse<UserSettings>(res)
 }
+
+// ---------------------------------------------------------------------------
+// Wiki Knowledge Base
+// ---------------------------------------------------------------------------
+
+export interface WikiPage {
+  title: string
+  slug: string
+  type: string           // "concept" | "tool" | "pattern"
+  content: string
+  source_ids: string[]
+  source_hash: string
+  compiled_at: string
+  schema_version: number
+  backlinks: string[]
+}
+
+export interface WikiStats {
+  total: number
+  by_type: Record<string, number>
+  wiki_root: string
+}
+
+export interface WikiCompileResult {
+  compiled: number
+  skipped: number
+  errors: number
+  pages_written: number
+  total_terms: number | null
+  message: string | null
+}
+
+export async function getWikiPages(type?: string): Promise<WikiPage[]> {
+  const url = type
+    ? `${API_URL}/wiki/pages?type=${encodeURIComponent(type)}`
+    : `${API_URL}/wiki/pages`
+  const res = await fetch(url)
+  return handleResponse<WikiPage[]>(res)
+}
+
+export async function getWikiPage(type: string, slug: string): Promise<WikiPage> {
+  const res = await fetch(`${API_URL}/wiki/pages/${encodeURIComponent(type)}/${encodeURIComponent(slug)}`)
+  return handleResponse<WikiPage>(res)
+}
+
+export async function getWikiStats(): Promise<WikiStats> {
+  const res = await fetch(`${API_URL}/wiki/stats`)
+  return handleResponse<WikiStats>(res)
+}
+
+export async function compileWiki(force = false): Promise<WikiCompileResult> {
+  const res = await fetch(`${API_URL}/wiki/compile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: "demo-user-id", force }),
+  })
+  return handleResponse<WikiCompileResult>(res)
+}
