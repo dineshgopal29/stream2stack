@@ -257,12 +257,12 @@ GET /admin/usage?org_id=&amp;period=</code></pre>
   </div>
 
   <div class="phase">
-    <h4>Phase C — Usage Dashboard ✅ Partial</h4>
+    <h4>Phase C — Usage Dashboard ✅ Complete</h4>
     <ul>
       <li class="check">☑ <code>GET /usage/events</code> with pagination</li>
       <li class="check">☑ <code>GET /usage/cost</code> with breakdown by operation</li>
-      <li>☐ Frontend: Usage tab in Settings page</li>
-      <li>☐ Monthly usage digest email</li>
+      <li class="check">☑ Frontend: Usage tab in Settings page</li>
+      <li class="check">☑ Monthly usage digest email (<code>email_service.send_usage_digest()</code> + <code>POST /cron/digest</code>)</li>
     </ul>
   </div>
 

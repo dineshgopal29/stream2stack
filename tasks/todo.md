@@ -106,12 +106,12 @@
 > See: doc/saas-vs-onprem-plan.md + doc/licensing-plan.md
 
 ### Phase 7A — License Foundation (Week 1–2)
-- [ ] RSA-2048 key pair generation + AWS KMS secure storage
-- [ ] License JWT payload schema finalized
+- [ ] RSA-2048 key pair generation + AWS KMS secure storage (ops-side, not in repo)
+- [x] License JWT payload schema finalized (matches licensing-plan.md §2.1)
 - [ ] License issuance CLI (internal ops tool)
-- [ ] backend/services/license.py: validate(), is_feature_enabled(), get_seat_limit()
-- [ ] S2S_DEPLOY_MODE env var + startup hard-stop on invalid license
-- [ ] GET /license/status endpoint
+- [x] backend/services/license.py: validate(), is_feature_enabled(), get_seat_limit()
+- [x] S2S_DEPLOY_MODE env var + startup hard-stop on invalid license (main.py:36-52)
+- [x] GET /license/status endpoint (backend/api/routes/license.py)
 
 ### Phase 7B — On-Prem Gate Wiring (Week 3)
 - [ ] Feature gates: custom_prompts, audit_logs, sso, white_label

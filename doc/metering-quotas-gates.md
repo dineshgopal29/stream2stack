@@ -426,8 +426,8 @@ GET /admin/usage?org_id=&period=                  # operator view (all users)
 ### Phase C — Usage Dashboard ✅ Complete
 - [x] `GET /usage/events` with pagination
 - [x] `GET /usage/cost` with breakdown
-- [ ] Frontend: Usage tab in Settings page
-- [ ] Email: Monthly usage digest
+- [x] Frontend: Usage tab in Settings page
+- [x] Email: Monthly usage digest (`email_service.send_usage_digest()` + `POST /cron/digest`)
 
 ### Phase D — Billing Integration (Pending)
 - [ ] Stripe integration for plan upgrades

@@ -1,7 +1,7 @@
 # Wiki Knowledge Base — Design Document
 
-**Status:** Phase A Complete · Phase B In Progress  
-**Version:** 0.2 · Updated 2026-04-05
+**Status:** Phase A Complete · Phase B Complete · Phase C Planned  
+**Version:** 0.3 · Updated 2026-04-06
 
 ---
 
@@ -120,7 +120,7 @@ backlinks:
 
 ---
 
-## Phase B — Q&A with Artifact Filing (In Progress)
+## Phase B — Q&A with Artifact Filing (Complete)
 
 ### Goal
 Allow developers to ask free-form questions against the wiki. Answers are:
@@ -195,3 +195,4 @@ Newsletter and blog generation reads compiled wiki pages as supplementary contex
 |---|---|---|
 | 0.1 | 2026-04-04 | Initial design — build system metaphor, Phase A spec |
 | 0.2 | 2026-04-05 | Phase A complete; Phase B spec added (Q&A + artifact filing) |
+| 0.3 | 2026-04-06 | Phase B complete — wiki_query.py + POST /wiki/query wired |
