@@ -154,3 +154,59 @@ def test_append_learn_more_ends_with_newline():
     pages = [_make_page("RAG Pipeline", "rag-pipeline", "concept")]
     result = append_learn_more(content, pages)
     assert result.endswith("\n")
+
+
+# ---------------------------------------------------------------------------
+# Integration: blog_generator uses wiki_context
+# ---------------------------------------------------------------------------
+
+def test_generate_blog_appends_learn_more_when_wiki_has_pages():
+    """generate_blog appends ## Learn More when wiki pages exist."""
+    from services.blog_generator import generate_blog
+    from models.schemas import ConceptExtractionResult
+
+    rag_page = _make_page("RAG Pipeline", "rag-pipeline", "concept")
+
+    def fake_read_page(page_type: str, slug: str):
+        if page_type == "concept" and slug == "rag-pipeline":
+            return rag_page
+        return None
+
+    with patch("services.wiki_context.store.read_page", side_effect=fake_read_page), \
+         patch("services.blog_generator._chat", return_value="# My Post\n\nContent here."), \
+         patch("services.blog_generator._get_client", return_value=(MagicMock(), "test-model", "ollama")), \
+         patch("services.blog_generator.load_blog_system_prompt", return_value="system prompt"):
+
+        result = generate_blog(
+            transcript="RAG Pipeline explained...",
+            title="RAG Tutorial",
+            concepts=ConceptExtractionResult(
+                concepts=["RAG Pipeline"], tools=[], patterns=[], code_hints=[]
+            ),
+            user_id="test-user",
+        )
+
+    assert "## Learn More" in result
+    assert "/wiki/concepts/rag-pipeline" in result
+
+
+def test_generate_blog_no_learn_more_when_wiki_empty():
+    """generate_blog does not append ## Learn More when no wiki pages match."""
+    from services.blog_generator import generate_blog
+    from models.schemas import ConceptExtractionResult
+
+    with patch("services.wiki_context.store.read_page", return_value=None), \
+         patch("services.blog_generator._chat", return_value="# My Post\n\nContent here."), \
+         patch("services.blog_generator._get_client", return_value=(MagicMock(), "test-model", "ollama")), \
+         patch("services.blog_generator.load_blog_system_prompt", return_value="system prompt"):
+
+        result = generate_blog(
+            transcript="Some transcript",
+            title="Some Video",
+            concepts=ConceptExtractionResult(
+                concepts=["Unknown Term"], tools=[], patterns=[], code_hints=[]
+            ),
+            user_id="test-user",
+        )
+
+    assert "## Learn More" not in result

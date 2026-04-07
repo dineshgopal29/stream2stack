@@ -23,6 +23,7 @@ from models.schemas import ConceptExtractionResult
 from services.cost_rates import compute_token_cost
 from services.metering import UsageEvent, record_sync
 from services.prompt_config import load_blog_system_prompt
+from services.wiki_context import get_relevant_pages, build_wiki_context_block, append_learn_more
 
 load_dotenv()
 
@@ -229,15 +230,29 @@ def generate_blog(
 
     user_content = "\n\n".join(parts)
 
+    # Wiki context injection — prepend relevant wiki pages to the user prompt.
+    wiki_pages = get_relevant_pages(
+        concepts=concepts.concepts,
+        tools=concepts.tools,
+        patterns=concepts.patterns,
+    )
+    if wiki_pages:
+        wiki_block = build_wiki_context_block(wiki_pages)
+        user_content = wiki_block + "\n\n" + user_content
+
     logger.info(
-        "Generating blog post for: %r (user=%s, description=%s, crawled=%s)",
-        title, user_id, bool(description), bool(crawled_context),
+        "Generating blog post for: %r (user=%s, description=%s, crawled=%s, wiki_pages=%d)",
+        title, user_id, bool(description), bool(crawled_context), len(wiki_pages),
     )
     blog_md = _chat(
         client, model, backend, system_prompt, user_content, max_tokens=4096,
         user_id=user_id, operation="blog_generation", resource_id=resource_id,
     )
     logger.info("Generated blog post for %r (%d chars).", title, len(blog_md))
+
+    # Append Learn More section with wiki links.
+    blog_md = append_learn_more(blog_md, wiki_pages)
+
     return blog_md
 
 
