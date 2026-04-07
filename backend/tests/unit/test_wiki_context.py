@@ -147,3 +147,10 @@ def test_append_learn_more_preserves_original_content():
     result = append_learn_more(content, pages)
 
     assert result.startswith(content)
+
+
+def test_append_learn_more_ends_with_newline():
+    content = "# My Blog Post\n\nSome content."
+    pages = [_make_page("RAG Pipeline", "rag-pipeline", "concept")]
+    result = append_learn_more(content, pages)
+    assert result.endswith("\n")

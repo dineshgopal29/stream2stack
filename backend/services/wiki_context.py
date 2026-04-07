@@ -93,4 +93,4 @@ def append_learn_more(content: str, pages: list[WikiPage]) -> str:
         path = f"/wiki/{page.page_type}s/{page.slug}"
         lines.append(f"- [{page.title}]({path})")
 
-    return content + "\n".join(lines)
+    return content + "\n".join(lines) + "\n"
