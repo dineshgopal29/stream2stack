@@ -140,6 +140,18 @@
 
 ---
 
+## Phase 8 — Wiki Knowledge Base Integration (Phase D)
+> See: doc/wiki-knowledge-base.md
+
+- [x] backend/services/wiki_context.py: get_relevant_pages, build_wiki_context_block, append_learn_more
+- [x] backend/services/blog_generator.py: inject wiki context + append Learn More in generate_blog()
+- [x] frontend/lib/api.ts: WikiPage, WikiStats, WikiCompileResult types + API functions
+- [x] frontend/components/navbar.tsx: Wiki nav entry added
+- [x] frontend/app/wiki/page.tsx: browse + search + recompile button
+- [x] frontend/app/wiki/[type]/[slug]/page.tsx: page detail with rendered Markdown + backlinks
+
+---
+
 ## Review
 - [ ] End-to-end test: ingest URL → transcript → blog → email
 - [x] Syntax validation: all Python files pass ast.parse

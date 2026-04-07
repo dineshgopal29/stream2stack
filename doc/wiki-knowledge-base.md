@@ -180,7 +180,7 @@ Triggered via: `GET /wiki/health` or scheduled cron
 
 ---
 
-## Phase D — Integration (Planned)
+## Phase D — Integration (Complete)
 
 Newsletter and blog generation reads compiled wiki pages as supplementary context:
 - Relevant wiki pages injected into the generation prompt
@@ -196,3 +196,4 @@ Newsletter and blog generation reads compiled wiki pages as supplementary contex
 | 0.1 | 2026-04-04 | Initial design — build system metaphor, Phase A spec |
 | 0.2 | 2026-04-05 | Phase A complete; Phase B spec added (Q&A + artifact filing) |
 | 0.3 | 2026-04-06 | Phase B complete — wiki_query.py + POST /wiki/query wired |
+| 0.4 | 2026-04-07 | Phase D complete — wiki context injection, Learn More links, /wiki frontend route |
