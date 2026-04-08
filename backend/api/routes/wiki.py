@@ -11,11 +11,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import asdict
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
-
-from dataclasses import asdict
 
 from services import wiki_compiler as compiler_svc
 from services import wiki_store as store
