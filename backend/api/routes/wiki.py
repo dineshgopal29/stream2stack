@@ -15,9 +15,12 @@ import logging
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 
+from dataclasses import asdict
+
 from services import wiki_compiler as compiler_svc
 from services import wiki_store as store
 from services import wiki_query as query_svc
+from services import wiki_linter as linter_svc
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -64,6 +67,22 @@ class QueryResponse(BaseModel):
     sources: list[str]
     qa_note_slug: str | None = None
     pages_searched: int
+
+
+class LintIssueResponse(BaseModel):
+    check: str
+    page_type: str
+    slug: str
+    title: str
+    detail: str
+
+
+class HealthResponse(BaseModel):
+    generated_at: str
+    pages_checked: int
+    issue_count: int
+    by_check: dict[str, int]
+    issues: list[LintIssueResponse]
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +208,35 @@ async def query_wiki(body: QueryRequest) -> QueryResponse:
         return QueryResponse(**result)
     except Exception as exc:
         logger.exception("Wiki query failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        )
+
+
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Run wiki health check",
+    description=(
+        "Runs the wiki linter: checks for broken backlinks, missing code examples, "
+        "stale pages, and contradiction candidates. Writes a dated Markdown report to "
+        "local_storage/wiki/health/ and returns results as JSON."
+    ),
+)
+async def wiki_health() -> HealthResponse:
+    try:
+        report = await asyncio.to_thread(linter_svc.run_linter)
+        return HealthResponse(
+            generated_at=report.generated_at,
+            pages_checked=report.pages_checked,
+            issue_count=len(report.issues),
+            by_check=report.by_check,
+            issues=[LintIssueResponse(**asdict(i)) for i in report.issues],
+        )
+    except Exception as exc:
+        logger.exception("Wiki health check failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
