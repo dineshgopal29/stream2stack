@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
-from services.wiki_linter import LintIssue, LintReport, run_linter
+from services.wiki_linter import LintIssue, LintReport, run_linter, _write_report
 from services.wiki_store import WikiPage
 
 
@@ -131,3 +131,43 @@ def test_by_check_counts_correctly():
     p2 = _make_page("CQRS", "cqrs", "pattern", content="## Summary\nNo code.")
     report = _run([p1, p2])
     assert report.by_check.get("missing_code_example", 0) == 2
+
+
+# ---------------------------------------------------------------------------
+# _write_report formatting
+# ---------------------------------------------------------------------------
+
+def test_write_report_clean():
+    report = LintReport(
+        generated_at="2026-04-07T00:00:00+00:00",
+        pages_checked=5,
+        issues=[],
+        by_check={},
+    )
+    with patch("services.wiki_linter.store.write_health_report", return_value=Path("/tmp/r.md")) as mock_write:
+        _write_report(report)
+    content = mock_write.call_args[0][0]
+    assert "Pages checked: 5" in content
+    assert "✅ No issues found." in content
+
+
+def test_write_report_with_issues():
+    issue = LintIssue(
+        check="missing_code_example",
+        page_type="concept",
+        slug="rag",
+        title="RAG",
+        detail="Page is missing a ## Code Example section",
+    )
+    report = LintReport(
+        generated_at="2026-04-07T00:00:00+00:00",
+        pages_checked=3,
+        issues=[issue],
+        by_check={"missing_code_example": 1},
+    )
+    with patch("services.wiki_linter.store.write_health_report", return_value=Path("/tmp/r.md")) as mock_write:
+        _write_report(report)
+    content = mock_write.call_args[0][0]
+    assert "Issues found: 1" in content
+    assert "Missing Code Example" in content
+    assert "concept/rag" in content

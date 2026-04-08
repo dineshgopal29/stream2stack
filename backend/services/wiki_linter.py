@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from services import wiki_store as store
-from services.wiki_store import slugify
+from services.wiki_store import slugify, WikiPage
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class LintReport:
 # Checks
 # ---------------------------------------------------------------------------
 
-def _check_missing_code_examples(pages: list) -> list[LintIssue]:
+def _check_missing_code_examples(pages: list[WikiPage]) -> list[LintIssue]:
     issues = []
     for page in pages:
         if "## Code Example" not in page.content:
@@ -66,7 +66,7 @@ def _check_missing_code_examples(pages: list) -> list[LintIssue]:
     return issues
 
 
-def _check_stale_pages(pages: list) -> list[LintIssue]:
+def _check_stale_pages(pages: list[WikiPage]) -> list[LintIssue]:
     issues = []
     cutoff = datetime.now(timezone.utc) - timedelta(days=_STALE_DAYS)
     for page in pages:
@@ -90,7 +90,7 @@ def _check_stale_pages(pages: list) -> list[LintIssue]:
     return issues
 
 
-def _check_broken_backlinks(pages: list) -> list[LintIssue]:
+def _check_broken_backlinks(pages: list[WikiPage]) -> list[LintIssue]:
     existing_slugs: set[str] = {p.slug for p in pages}
     issues = []
     seen: set[tuple[str, str]] = set()
@@ -113,7 +113,7 @@ def _check_broken_backlinks(pages: list) -> list[LintIssue]:
     return issues
 
 
-def _check_contradiction_candidates(pages: list) -> list[LintIssue]:
+def _check_contradiction_candidates(pages: list[WikiPage]) -> list[LintIssue]:
     slug_types: dict[str, set[str]] = {}
     for page in pages:
         slug_types.setdefault(page.slug, set()).add(page.page_type)
@@ -126,7 +126,7 @@ def _check_contradiction_candidates(pages: list) -> list[LintIssue]:
                 check="contradiction_candidate",
                 page_type="mixed",
                 slug=slug,
-                title=slug,
+                title=slug,  # No canonical title when same slug spans multiple types
                 detail=f"Same slug exists as multiple types: {types_str} — may indicate conflicting definitions",
             ))
     return issues
