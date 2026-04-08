@@ -150,6 +150,13 @@
 - [x] frontend/app/wiki/page.tsx: browse + search + recompile button
 - [x] frontend/app/wiki/[type]/[slug]/page.tsx: page detail with rendered Markdown + backlinks
 
+## Phase 9 — Wiki Linter (Phase C)
+> See: doc/wiki-knowledge-base.md
+
+- [x] backend/services/wiki_linter.py: LintIssue, LintReport, run_linter() with 4 checks
+- [x] backend/tests/unit/test_wiki_linter.py: 11 unit tests
+- [x] backend/api/routes/wiki.py: GET /wiki/health endpoint
+
 ---
 
 ## Review

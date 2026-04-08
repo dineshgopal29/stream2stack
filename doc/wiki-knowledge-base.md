@@ -1,7 +1,7 @@
 # Wiki Knowledge Base — Design Document
 
-**Status:** Phase A Complete · Phase B Complete · Phase C Planned  
-**Version:** 0.3 · Updated 2026-04-06
+**Status:** Phase A Complete · Phase B Complete · Phase C Complete · Phase D Complete  
+**Version:** 0.5 · Updated 2026-04-07
 
 ---
 
@@ -166,7 +166,7 @@ question: "What are the tradeoffs..."
 
 ---
 
-## Phase C — Linter (Planned)
+## Phase C — Linter (Complete)
 
 Scheduled health checks that detect:
 - **Orphan concepts** — mentioned in backlinks but no page exists
@@ -197,3 +197,4 @@ Newsletter and blog generation reads compiled wiki pages as supplementary contex
 | 0.2 | 2026-04-05 | Phase A complete; Phase B spec added (Q&A + artifact filing) |
 | 0.3 | 2026-04-06 | Phase B complete — wiki_query.py + POST /wiki/query wired |
 | 0.4 | 2026-04-07 | Phase D complete — wiki context injection, Learn More links, /wiki frontend route |
+| 0.5 | 2026-04-07 | Phase C complete — wiki_linter.py + GET /wiki/health endpoint |

@@ -51,9 +51,9 @@
   <h1>Wiki Knowledge Base</h1>
   <div class="meta">
     <span>Stream2Stack</span>
-    <span class="badge badge-green">Phase B Complete</span>
-    <span>Version 0.3</span>
-    <span>Updated 2026-04-06</span>
+    <span class="badge badge-green">Phases A-D Complete</span>
+    <span>Version 0.5</span>
+    <span>Updated 2026-04-07</span>
   </div>
 </header>
 
@@ -94,16 +94,16 @@
     │    <span class="done">tools/&lt;slug&gt;.md</span><br>
     │    <span class="done">patterns/&lt;slug&gt;.md</span><br>
     │    <span class="done">indexes/all.md</span><br>
-    │    <span class="wip">qa_notes/&lt;slug&gt;.md       ← Phase B</span><br>
-    │    <span class="planned">health/report-&lt;date&gt;.md  ← Phase C</span><br>
+    │    <span class="done">qa_notes/&lt;slug&gt;.md       ← Phase B</span><br>
+    │    <span class="done">health/report-&lt;date&gt;.md  ← Phase C</span><br>
     ▼<br>
 <span class="done">REST API (api/routes/wiki.py)</span><br>
     <span class="done">POST /wiki/compile</span><br>
     <span class="done">GET  /wiki/pages</span><br>
     <span class="done">GET  /wiki/pages/{type}/{slug}</span><br>
     <span class="done">GET  /wiki/stats</span><br>
-    <span class="wip">POST /wiki/query              ← Phase B</span><br>
-    <span class="planned">GET  /wiki/health             ← Phase C</span>
+    <span class="done">POST /wiki/query              ← Phase B</span><br>
+    <span class="done">GET  /wiki/health             ← Phase C</span>
 </div>
 
 <h2>Page Schema</h2>
@@ -213,11 +213,11 @@ backlinks:
 </div>
 
 <!-- ── PHASE C ── -->
-<h2>Phase C — Linter (Planned)</h2>
+<h2>Phase C — Linter (Complete)</h2>
 <div class="phase-block">
   <div class="phase-header">
     <h3>Health Checker</h3>
-    <span class="badge badge-muted">Planned</span>
+    <span class="badge badge-green">Complete</span>
   </div>
   <p>Scheduled health checks detect structural issues in the wiki:</p>
   <ul>
@@ -253,6 +253,7 @@ backlinks:
     <tr><td>0.2</td><td>2026-04-05</td><td>Phase A complete; Phase B spec + implementation (Q&amp;A + artifact filing)</td></tr>
     <tr><td>0.3</td><td>2026-04-06</td><td>Phase B complete — wiki_query.py + POST /wiki/query wired</td></tr>
     <tr><td>0.4</td><td>2026-04-07</td><td>Phase D complete — wiki context injection, Learn More links, /wiki frontend route</td></tr>
+    <tr><td>0.5</td><td>2026-04-07</td><td>Phase C complete — wiki_linter.py + GET /wiki/health endpoint</td></tr>
   </tbody>
 </table>
 
