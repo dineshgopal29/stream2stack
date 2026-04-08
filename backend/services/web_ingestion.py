@@ -24,6 +24,7 @@ from services.firecrawl_crawler import crawl_url
 logger = logging.getLogger(__name__)
 
 _H1_RE = re.compile(r"^#\s+(.+)", re.MULTILINE)
+_DESCRIPTION_MAX_CHARS = 300
 
 
 def _url_to_id(url: str) -> str:
@@ -44,7 +45,7 @@ def _extract_description(markdown: str) -> str:
     for line in markdown.splitlines():
         stripped = line.strip()
         if stripped and not stripped.startswith("#"):
-            return stripped[:300]
+            return stripped[:_DESCRIPTION_MAX_CHARS]
     return ""
 
 
