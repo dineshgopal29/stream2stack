@@ -176,7 +176,7 @@ async def list_videos() -> list[dict[str, Any]]:
         result = (
             supabase.table("videos")
             .select(
-                "id, youtube_id, title, channel_name, published_at, "
+                "id, youtube_id, source_type, source_url, title, channel_name, published_at, "
                 "duration_seconds, thumbnail_url, created_at, "
                 "transcript, embedding"
             )

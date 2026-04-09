@@ -12,6 +12,8 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
 
+import os
+
 from db.supabase_client import get_supabase_client
 
 router = APIRouter()
@@ -38,18 +40,39 @@ async def clear_data() -> dict:
     supabase = get_supabase_client()
 
     cleared_tables: list[str] = []
-    for table in _TABLES:
+
+    # Use raw SQL via psycopg2 when DATABASE_URL is set (local dev),
+    # otherwise use Supabase's filter-based delete (production).
+    if os.getenv("DATABASE_URL"):
+        import psycopg2
+        conn = psycopg2.connect(os.environ["DATABASE_URL"])
         try:
-            if table in ("newsletter_videos",):
-                supabase.table(table).delete().neq("newsletter_id", "").execute()
-            elif table in ("processed_videos",):
-                supabase.table(table).delete().neq("user_id", "").execute()
-            else:
-                supabase.table(table).delete().neq("id", "").execute()
-            cleared_tables.append(table)
-            logger.info("Cleared table: %s", table)
-        except Exception as exc:
-            logger.warning("Failed to clear table %s: %s", table, exc)
+            with conn.cursor() as cur:
+                for table in _TABLES:
+                    try:
+                        cur.execute(f"DELETE FROM {table}")  # noqa: S608 — internal admin only
+                        cleared_tables.append(table)
+                        logger.info("Cleared table: %s", table)
+                    except Exception as exc:
+                        logger.warning("Failed to clear table %s: %s", table, exc)
+                        conn.rollback()
+                        conn.autocommit = True
+            conn.commit()
+        finally:
+            conn.close()
+    else:
+        for table in _TABLES:
+            try:
+                if table in ("newsletter_videos",):
+                    supabase.table(table).delete().neq("newsletter_id", "").execute()
+                elif table in ("processed_videos",):
+                    supabase.table(table).delete().neq("user_id", "").execute()
+                else:
+                    supabase.table(table).delete().neq("id", "").execute()
+                cleared_tables.append(table)
+                logger.info("Cleared table: %s", table)
+            except Exception as exc:
+                logger.warning("Failed to clear table %s: %s", table, exc)
 
     # Remove wiki filesystem
     if _WIKI_ROOT.exists():

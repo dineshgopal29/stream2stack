@@ -58,7 +58,7 @@ def crawl_url(url: str) -> Optional[str]:
         try:
             result = client.scrape_url(
                 url,
-                formats=["markdown"],
+                params={"formats": ["markdown"]},
             )
             # firecrawl-py v1.x returns a ScrapeResponse with .markdown attribute
             content: str | None = None
