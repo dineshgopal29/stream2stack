@@ -16,12 +16,22 @@ from fastapi.responses import JSONResponse
 
 from db.supabase_client import get_supabase_client
 from models.schemas import VideoIngestRequest, VideoIngestResponse
+from urllib.parse import urlparse
+
 from services import (
     embeddings as embeddings_svc,
     transcription as transcription_svc,
     youtube_ingestion as ingestion_svc,
+    web_ingestion as web_svc,
 )
+from services import wiki_compiler as compiler_svc
 from services.quota_gate import QuotaGate
+
+
+def _is_youtube_url(url: str) -> bool:
+    """Return True if url points to YouTube (youtube.com or youtu.be)."""
+    host = urlparse(url.strip()).hostname or ""
+    return "youtube.com" in host or "youtu.be" in host
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -61,24 +71,38 @@ async def ingest_videos(body: VideoIngestRequest) -> VideoIngestResponse:
     if body.user_id:
         quota_headers = await QuotaGate("videos").check(body.user_id)
 
-    # Step 1: Ingest metadata (sync operation wrapped in thread pool).
-    try:
-        videos: list[dict[str, Any]] = await asyncio.to_thread(
-            ingestion_svc.ingest_videos,
-            body.urls,
-            body.playlist_url,
-        )
-    except Exception as exc:
-        logger.exception("Video ingestion failed: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"YouTube API error during ingestion: {exc}",
-        )
+    # Step 1: Split URLs by type, then ingest both YouTube and web sources.
+    youtube_urls = [u for u in body.urls if _is_youtube_url(u)]
+    web_urls     = [u for u in body.urls if not _is_youtube_url(u)]
+
+    videos: list[dict[str, Any]] = []
+
+    if youtube_urls or body.playlist_url:
+        try:
+            yt_videos = await asyncio.to_thread(
+                ingestion_svc.ingest_videos,
+                youtube_urls,
+                body.playlist_url,
+            )
+            videos.extend(yt_videos)
+        except Exception as exc:
+            logger.exception("YouTube ingestion failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"YouTube API error during ingestion: {exc}",
+            )
+
+    for url in web_urls:
+        try:
+            web_video = await asyncio.to_thread(web_svc.ingest_web_url, url)
+            videos.append(web_video)
+        except Exception as exc:
+            logger.warning("Web ingestion failed for %r: %s", url, exc)
 
     if not videos:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="No valid videos could be ingested from the provided URLs.",
+            detail="No valid sources could be ingested from the provided URLs.",
         )
 
     # Steps 2 & 3: Transcript + embedding for each video (parallelised).
@@ -118,9 +142,19 @@ async def ingest_videos(body: VideoIngestRequest) -> VideoIngestResponse:
         *[process_single_video(v) for v in videos], return_exceptions=False
     )
 
+    # Fire-and-forget wiki compile so knowledge base stays fresh after every ingest.
+    async def _compile_wiki_bg() -> None:
+        try:
+            await asyncio.to_thread(compiler_svc.compile_wiki, user_id="system")
+            logger.info("Background wiki compile completed after ingest.")
+        except Exception as exc:
+            logger.warning("Background wiki compile failed: %s", exc)
+
+    asyncio.create_task(_compile_wiki_bg())
+
     return VideoIngestResponse(
         videos=processed,
-        message=f"Successfully ingested {len(processed)} video(s).",
+        message=f"Successfully ingested {len(processed)} source(s).",
     )
 
 
