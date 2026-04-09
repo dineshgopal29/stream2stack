@@ -31,6 +31,7 @@ import {
   Plus,
   X,
   Link as LinkIcon,
+  Globe,
 } from "lucide-react"
 
 const DEMO_USER_ID = "demo-user-id"
@@ -62,7 +63,11 @@ function VideoCard({ video }: { video: Video }) {
         </div>
       ) : (
         <div className="h-16 w-28 flex-shrink-0 rounded bg-muted flex items-center justify-center">
-          <Youtube className="h-6 w-6 text-muted-foreground" />
+          {(video as any).source_type === "web" ? (
+            <Globe className="h-6 w-6 text-muted-foreground" />
+          ) : (
+            <Youtube className="h-6 w-6 text-muted-foreground" />
+          )}
         </div>
       )}
       <div className="flex-1 min-w-0">
@@ -255,7 +260,7 @@ export default function InputPage() {
             <CardTitle className="text-lg">Add Videos</CardTitle>
           </div>
           <CardDescription>
-            Enter YouTube video URLs or a playlist URL to ingest.
+            Enter YouTube video URLs or website links — one per line. Mix and match freely.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -273,10 +278,10 @@ export default function InputPage() {
 
             <TabsContent value="urls" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="video-urls">YouTube Video URLs</Label>
+                <Label htmlFor="video-urls">YouTube or Website URLs</Label>
                 <Textarea
                   id="video-urls"
-                  placeholder={`https://youtube.com/watch?v=abc123\nhttps://youtube.com/watch?v=def456\nhttps://youtube.com/watch?v=ghi789`}
+                  placeholder={`https://youtube.com/watch?v=abc123\nhttps://venturebeat.com/data/karpathy-llm-architecture`}
                   value={videoUrls}
                   onChange={(e) => setVideoUrls(e.target.value)}
                   rows={6}
@@ -284,8 +289,7 @@ export default function InputPage() {
                   className="font-mono text-xs resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  One URL per line. Supports youtube.com/watch and youtu.be
-                  links.
+                  One URL per line. Supports YouTube links and any https:// website URL.
                 </p>
               </div>
               <Button
