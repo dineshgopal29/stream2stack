@@ -152,6 +152,15 @@ async def ingest_videos(body: VideoIngestRequest) -> VideoIngestResponse:
 
     asyncio.create_task(_compile_wiki_bg())
 
+    # For playlist ingests with more than 3 videos: narrow to the 3 most
+    # thematically cohesive videos so the response (and generation) stays focused.
+    if body.playlist_url and len(processed) > 3:
+        from services.ranking import select_cohesive_top_n
+        processed = select_cohesive_top_n(processed, n=3)
+        logger.info(
+            "Playlist ingest narrowed to %d cohesive videos.", len(processed)
+        )
+
     return VideoIngestResponse(
         videos=processed,
         message=f"Successfully ingested {len(processed)} source(s).",
