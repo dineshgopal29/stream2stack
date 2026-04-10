@@ -7,7 +7,6 @@ import {
   ingestVideos,
   generateNewsletter,
   getSettings,
-  ApiError,
   type Video,
   type Newsletter,
 } from "@/lib/api"
@@ -91,11 +90,13 @@ export default function InputPage() {
   const { toast } = useToast()
 
   // Ingest state
-  const [videoUrls, setVideoUrls] = useState("")
+  const [youtubeUrls, setYoutubeUrls] = useState("")
+  const [websiteUrls, setWebsiteUrls] = useState("")
   const [playlistUrl, setPlaylistUrl] = useState("")
   const [isIngesting, setIsIngesting] = useState(false)
   const [ingestedVideos, setIngestedVideos] = useState<Video[]>([])
   const [ingestComplete, setIngestComplete] = useState(false)
+  const [sessionVideoIds, setSessionVideoIds] = useState<string[]>([])
 
   // Auto-populate recipient email from saved settings
   useEffect(() => {
@@ -113,13 +114,22 @@ export default function InputPage() {
   const [generatedNewsletter, setGeneratedNewsletter] =
     useState<Newsletter | null>(null)
 
+  function getUrlMode(): "youtube" | "web" | "mixed" | "none" {
+    const hasYt = youtubeUrls.trim().length > 0
+    const hasWeb = websiteUrls.trim().length > 0
+    if (hasYt && hasWeb) return "mixed"
+    if (hasYt) return "youtube"
+    if (hasWeb) return "web"
+    return "none"
+  }
+
   async function handleIngest(mode: "urls" | "playlist") {
     const urls =
       mode === "urls"
-        ? videoUrls
-            .split("\n")
-            .map((u) => u.trim())
-            .filter(Boolean)
+        ? [
+            ...youtubeUrls.split("\n").map((u) => u.trim()).filter(Boolean),
+            ...websiteUrls.split("\n").map((u) => u.trim()).filter(Boolean),
+          ]
         : []
     const playlist = mode === "playlist" ? playlistUrl.trim() : undefined
 
@@ -128,7 +138,7 @@ export default function InputPage() {
         title: "No input provided",
         description:
           mode === "urls"
-            ? "Please enter at least one YouTube URL."
+            ? "Please enter at least one YouTube or Website URL."
             : "Please enter a playlist URL.",
         variant: "destructive",
       })
@@ -139,10 +149,11 @@ export default function InputPage() {
     try {
       const result = await ingestVideos(urls, playlist)
       setIngestedVideos(result.videos)
+      setSessionVideoIds(result.videos.map((v) => v.id))
       setIngestComplete(true)
       toast({
-        title: "Videos ingested!",
-        description: `Successfully processed ${result.videos.length} video${result.videos.length !== 1 ? "s" : ""}.`,
+        title: "Sources ingested!",
+        description: `Successfully processed ${result.videos.length} source${result.videos.length !== 1 ? "s" : ""}.`,
       })
     } catch (err) {
       toast({
@@ -191,26 +202,12 @@ export default function InputPage() {
     setIsGenerating(true)
     const opts = {
       recipientEmail: recipientEmail.trim() || undefined,
-      autoSelect: true,
+      videoIds: sessionVideoIds,
       description: description.trim() || undefined,
       sourceUrls: sourceUrls.length > 0 ? sourceUrls : undefined,
     }
     try {
-      let newsletter: Newsletter
-      try {
-        newsletter = await generateNewsletter(DEMO_USER_ID, opts)
-      } catch (err) {
-        // 409 = all videos already processed — retry without force
-        if (err instanceof ApiError && err.status === 409) {
-          toast({
-            title: "Re-using processed videos",
-            description: "All videos were already processed — regenerating from existing content.",
-          })
-          newsletter = await generateNewsletter(DEMO_USER_ID, opts)
-        } else {
-          throw err
-        }
-      }
+      const newsletter = await generateNewsletter(DEMO_USER_ID, opts)
       setGeneratedNewsletter(newsletter)
       toast({
         title: "Newsletter generated!",
@@ -229,10 +226,12 @@ export default function InputPage() {
   }
 
   function handleReset() {
-    setVideoUrls("")
+    setYoutubeUrls("")
+    setWebsiteUrls("")
     setPlaylistUrl("")
     setIngestedVideos([])
     setIngestComplete(false)
+    setSessionVideoIds([])
     setGeneratedNewsletter(null)
     setRecipientEmail("")
     setDescription("")
@@ -276,33 +275,80 @@ export default function InputPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="urls" className="space-y-4">
+            <TabsContent value="urls" className="space-y-5">
+              {/* YouTube URLs */}
               <div className="space-y-2">
-                <Label htmlFor="video-urls">YouTube or Website URLs</Label>
+                <Label htmlFor="youtube-urls" className="flex items-center gap-2">
+                  <Youtube className="h-4 w-4 text-red-500" />
+                  YouTube URLs
+                </Label>
                 <Textarea
-                  id="video-urls"
-                  placeholder={`https://youtube.com/watch?v=abc123\nhttps://venturebeat.com/data/karpathy-llm-architecture`}
-                  value={videoUrls}
-                  onChange={(e) => setVideoUrls(e.target.value)}
-                  rows={6}
+                  id="youtube-urls"
+                  placeholder={`https://youtube.com/watch?v=abc123\nhttps://youtu.be/xyz456`}
+                  value={youtubeUrls}
+                  onChange={(e) => setYoutubeUrls(e.target.value)}
+                  rows={3}
                   disabled={isIngesting || ingestComplete}
                   className="font-mono text-xs resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  One URL per line. Supports YouTube links and any https:// website URL.
+                  One URL per line. Leave blank if not using YouTube.
                 </p>
               </div>
+
+              {/* Website URLs */}
+              <div className="space-y-2">
+                <Label htmlFor="website-urls" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4 text-blue-500" />
+                  Website URLs
+                </Label>
+                <Textarea
+                  id="website-urls"
+                  placeholder={`https://venturebeat.com/ai/some-article\nhttps://example.com/blog/post`}
+                  value={websiteUrls}
+                  onChange={(e) => setWebsiteUrls(e.target.value)}
+                  rows={3}
+                  disabled={isIngesting || ingestComplete}
+                  className="font-mono text-xs resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  One URL per line. Content will be scraped via Firecrawl. Leave blank if not using web sources.
+                </p>
+              </div>
+
+              {/* Mode badge */}
+              {getUrlMode() !== "none" && !ingestComplete && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Mode:</span>
+                  {getUrlMode() === "youtube" && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Youtube className="h-3 w-3" /> YouTube only
+                    </Badge>
+                  )}
+                  {getUrlMode() === "web" && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Globe className="h-3 w-3" /> Web only
+                    </Badge>
+                  )}
+                  {getUrlMode() === "mixed" && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Youtube className="h-3 w-3" /><Globe className="h-3 w-3" /> Mixed — YouTube + Web
+                    </Badge>
+                  )}
+                </div>
+              )}
+
               <Button
                 onClick={() => handleIngest("urls")}
-                disabled={isIngesting || ingestComplete || !videoUrls.trim()}
+                disabled={isIngesting || ingestComplete || getUrlMode() === "none"}
                 className="gap-2"
               >
                 {isIngesting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Youtube className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4" />
                 )}
-                {isIngesting ? "Ingesting..." : "Ingest Videos"}
+                {isIngesting ? "Ingesting..." : "Ingest Sources"}
               </Button>
             </TabsContent>
 
