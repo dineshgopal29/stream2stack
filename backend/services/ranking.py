@@ -186,3 +186,63 @@ def rank_and_select(
         [f"{s:.4f}" for s, _ in scored[:top_n]],
     )
     return selected
+
+
+def select_cohesive_top_n(
+    videos: list[dict[str, Any]],
+    n: int = 3,
+) -> list[dict[str, Any]]:
+    """Return the n videos closest to the group embedding centroid.
+
+    Algorithm:
+      1. Separate into has_embedding / no_embedding groups.
+      2. If no embeddings at all, fall back to top-n by recency (desc).
+      3. Compute centroid = mean of all embedding vectors.
+      4. Score each embedded video by cosine_similarity(embedding, centroid).
+      5. Return top-n scored, padded with no_embedding videos if needed.
+
+    Args:
+        videos: List of video dicts, each optionally containing an 'embedding' list.
+        n:      Maximum number of videos to return.
+
+    Returns:
+        Up to n videos, ordered by closeness to group centroid.
+    """
+    if not videos:
+        return []
+    if len(videos) <= n:
+        return videos
+
+    has_emb = [v for v in videos if v.get("embedding")]
+    no_emb  = [v for v in videos if not v.get("embedding")]
+
+    if not has_emb:
+        sorted_by_recency = sorted(
+            videos,
+            key=lambda v: v.get("published_at") or "",
+            reverse=True,
+        )
+        return sorted_by_recency[:n]
+
+    emb_matrix = np.array([v["embedding"] for v in has_emb], dtype=np.float64)
+    centroid: list[float] = emb_matrix.mean(axis=0).tolist()
+
+    scored: list[tuple[float, dict[str, Any]]] = [
+        (cosine_similarity(v["embedding"], centroid), v)
+        for v in has_emb
+    ]
+    scored.sort(key=lambda t: t[0], reverse=True)
+
+    result = [v for _, v in scored[:n]]
+
+    if len(result) < n:
+        result.extend(no_emb[: n - len(result)])
+
+    logger.info(
+        "select_cohesive_top_n: %d input → %d selected (n=%d). Top scores: %s",
+        len(videos),
+        len(result),
+        n,
+        [f"{s:.4f}" for s, _ in scored[:n]],
+    )
+    return result[:n]

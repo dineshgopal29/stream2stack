@@ -17,6 +17,7 @@ from services.ranking import (
     rank_and_select,
     recency_score,
     score_video,
+    select_cohesive_top_n,
 )
 
 
@@ -191,3 +192,62 @@ def test_rank_and_select_top_n_larger_than_list():
     videos = [{"id": "v1", "published_at": "2024-01-01T00:00:00Z", "embedding": [1.0]}]
     selected = rank_and_select(videos, [1.0], top_n=10)
     assert len(selected) == 1
+
+
+# ---------------------------------------------------------------------------
+# select_cohesive_top_n
+# ---------------------------------------------------------------------------
+
+
+def test_select_cohesive_top_n_empty_returns_empty():
+    assert select_cohesive_top_n([], n=3) == []
+
+
+def test_select_cohesive_top_n_fewer_than_n_returns_all():
+    videos = [
+        {"id": "v1", "embedding": [1.0, 0.0], "published_at": "2024-01-01T00:00:00Z"},
+        {"id": "v2", "embedding": [0.9, 0.1], "published_at": "2024-01-02T00:00:00Z"},
+    ]
+    result = select_cohesive_top_n(videos, n=3)
+    assert len(result) == 2
+    assert {v["id"] for v in result} == {"v1", "v2"}
+
+
+def test_select_cohesive_top_n_picks_closest_to_centroid():
+    # centroid of v1 [1,0] and v2 [0,1] is [0.5, 0.5]
+    # v1 and v2 are equidistant; v3 [-1, 0] is far — should be excluded
+    videos = [
+        {"id": "v1", "embedding": [1.0, 0.0], "published_at": "2024-01-01T00:00:00Z"},
+        {"id": "v2", "embedding": [0.0, 1.0], "published_at": "2024-01-02T00:00:00Z"},
+        {"id": "v3", "embedding": [-1.0, 0.0], "published_at": "2024-01-03T00:00:00Z"},
+    ]
+    result = select_cohesive_top_n(videos, n=2)
+    assert len(result) == 2
+    ids = {v["id"] for v in result}
+    assert "v3" not in ids
+
+
+def test_select_cohesive_top_n_no_embeddings_falls_back_to_recency():
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(tz=timezone.utc)
+    videos = [
+        {"id": "old", "embedding": None, "published_at": (now - timedelta(days=10)).isoformat()},
+        {"id": "mid", "embedding": None, "published_at": (now - timedelta(days=5)).isoformat()},
+        {"id": "new", "embedding": None, "published_at": now.isoformat()},
+    ]
+    result = select_cohesive_top_n(videos, n=2)
+    assert len(result) == 2
+    ids = [v["id"] for v in result]
+    assert ids[0] == "new"
+    assert "old" not in ids
+
+
+def test_select_cohesive_top_n_pads_with_no_embedding_videos():
+    videos = [
+        {"id": "emb", "embedding": [1.0, 0.0], "published_at": "2024-01-03T00:00:00Z"},
+        {"id": "no1", "embedding": None, "published_at": "2024-01-02T00:00:00Z"},
+        {"id": "no2", "embedding": None, "published_at": "2024-01-01T00:00:00Z"},
+    ]
+    result = select_cohesive_top_n(videos, n=3)
+    assert len(result) == 3
+    assert result[0]["id"] == "emb"
