@@ -55,8 +55,9 @@ test("ingest mixed URLs (VentureBeat + YouTube) via API", async ({ page }) => {
   // Verify the input page UI loads correctly with updated labels
   await page.goto("/input")
   await page.waitForLoadState("networkidle")
-  await expect(page.getByText(/YouTube or Website URLs/i)).toBeVisible()
-  await expect(page.getByText(/youtube links and any https/i)).toBeVisible()
+  await expect(page.getByText(/YouTube URLs/i)).toBeVisible()
+  await expect(page.getByText(/Website URLs/i)).toBeVisible()
+  await expect(page.getByText(/Leave blank if not using YouTube/i)).toBeVisible()
 })
 
 test("newsletter generation API accepted and history page renders", async ({ page }) => {

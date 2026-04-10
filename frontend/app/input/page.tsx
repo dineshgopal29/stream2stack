@@ -363,7 +363,7 @@ export default function InputPage() {
                   disabled={isIngesting || ingestComplete}
                 />
                 <p className="text-xs text-muted-foreground">
-                  All videos in the playlist will be ingested and processed.
+                  The 3 most thematically related videos will be selected automatically.
                 </p>
               </div>
               <Button
