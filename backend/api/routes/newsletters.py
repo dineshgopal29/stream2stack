@@ -182,6 +182,74 @@ def _build_references_section(
     return "\n".join(lines) + "\n"
 
 
+async def _find_related_references(
+    session_video_ids: list[str],
+    primary_embedding: list[float],
+    top_n: int = 3,
+) -> list[dict[str, Any]]:
+    """Return up to top_n DB videos similar to primary_embedding,
+    excluding any video whose ID is in session_video_ids.
+
+    Scores all DB videos with embeddings using cosine similarity, then
+    returns the top_n that exceed RELATED_CONTENT_THRESHOLD (default 0.75).
+    Returns an empty list if no candidates meet the threshold or on any error.
+    """
+    import os
+    threshold = float(os.getenv("RELATED_CONTENT_THRESHOLD", "0.75"))
+
+    supabase = get_supabase_client()
+    try:
+        result = (
+            supabase.table("videos")
+            .select("id, title, youtube_id, source_type, source_url, embedding")
+            .not_.is_("embedding", "null")
+            .execute()
+        )
+        all_videos: list[dict[str, Any]] = result.data or []
+    except Exception as exc:
+        logger.warning("Related references DB query failed: %s", exc)
+        return []
+
+    session_id_set = set(session_video_ids)
+    candidates = [v for v in all_videos if v["id"] not in session_id_set]
+
+    scored: list[tuple[float, dict[str, Any]]] = []
+    for video in candidates:
+        emb = video.get("embedding")
+        if not emb:
+            continue
+        try:
+            sim = ranking_svc.cosine_similarity(emb, primary_embedding)
+            if sim >= threshold:
+                scored.append((sim, video))
+        except Exception:
+            continue
+
+    scored.sort(key=lambda t: t[0], reverse=True)
+    related = [v for _, v in scored[:top_n]]
+    logger.info(
+        "_find_related_references: %d candidates, %d above threshold %.2f, returning %d.",
+        len(candidates), len(scored), threshold, len(related),
+    )
+    return related
+
+
+def _build_related_content_section(related: list[dict[str, Any]]) -> str:
+    """Build a Markdown '## Related Content' section from video records."""
+    lines = ["\n\n---\n\n## Related Content\n"]
+    for video in related:
+        title = video.get("title", "Untitled")
+        source_type = video.get("source_type", "youtube")
+        if source_type == "web":
+            url = video.get("source_url", "")
+        else:
+            yt_id = video.get("youtube_id", "")
+            url = f"https://www.youtube.com/watch?v={yt_id}" if yt_id else ""
+        if url:
+            lines.append(f"- [{title}]({url})")
+    return "\n".join(lines) + "\n"
+
+
 async def _resolve_source_videos(youtube_ids: list[str]) -> list[dict[str, Any]]:
     """Return DB video records for the given YouTube IDs.
 
@@ -445,6 +513,23 @@ async def generate_newsletter(body: NewsletterGenerateRequest) -> NewsletterResp
             crawled_context = "\n\n".join(context_parts)
 
     # -------------------------------------------------------------------------
+    # 3c. Find related past content for reference section.
+    # -------------------------------------------------------------------------
+    _primary_embedding: list[float] = []
+    for v in filtered_videos:
+        emb = v.get("embedding")
+        if emb:
+            _primary_embedding = emb
+            break
+
+    _related_refs: list[dict[str, Any]] = []
+    if _primary_embedding:
+        _related_refs = await _find_related_references(
+            session_video_ids=[v["id"] for v in filtered_videos],
+            primary_embedding=_primary_embedding,
+        )
+
+    # -------------------------------------------------------------------------
     # 4. Concept extraction + blog generation (parallelised).
     # resource_id is unknown until after DB insert; pass None here and update
     # events retroactively via the newsletter_id after insert (acceptable
@@ -488,6 +573,10 @@ async def generate_newsletter(body: NewsletterGenerateRequest) -> NewsletterResp
         except Exception as exc:
             logger.exception("Newsletter assembly failed: %s", exc)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+    # Append related content references (non-empty only).
+    if _related_refs:
+        combined_md += _build_related_content_section(_related_refs)
 
     # -------------------------------------------------------------------------
     # 6. Convert to HTML.
