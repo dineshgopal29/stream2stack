@@ -211,10 +211,11 @@ def select_cohesive_top_n(
     if not videos:
         return []
     if len(videos) <= n:
+        # Fewer videos than requested — return all (order is irrelevant when full set is returned).
         return videos
 
     has_emb = [v for v in videos if v.get("embedding")]
-    no_emb  = [v for v in videos if not v.get("embedding")]
+    no_emb = [v for v in videos if not v.get("embedding")]
 
     if not has_emb:
         sorted_by_recency = sorted(
@@ -236,6 +237,12 @@ def select_cohesive_top_n(
     result = [v for _, v in scored[:n]]
 
     if len(result) < n:
+        logger.info(
+            "select_cohesive_top_n: only %d embedded videos available; "
+            "padding result with %d unembedded video(s).",
+            len(result),
+            n - len(result),
+        )
         result.extend(no_emb[: n - len(result)])
 
     logger.info(
