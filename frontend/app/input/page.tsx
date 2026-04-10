@@ -200,13 +200,13 @@ export default function InputPage() {
       try {
         newsletter = await generateNewsletter(DEMO_USER_ID, opts)
       } catch (err) {
-        // 409 = all videos already processed — retry with force=true
+        // 409 = all videos already processed — retry without force
         if (err instanceof ApiError && err.status === 409) {
           toast({
             title: "Re-using processed videos",
             description: "All videos were already processed — regenerating from existing content.",
           })
-          newsletter = await generateNewsletter(DEMO_USER_ID, { ...opts, force: true })
+          newsletter = await generateNewsletter(DEMO_USER_ID, opts)
         } else {
           throw err
         }

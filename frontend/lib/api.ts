@@ -75,25 +75,27 @@ export async function ingestVideos(
 
 export interface GenerateOptions {
   recipientEmail?: string
-  autoSelect?: boolean
+  videoIds?: string[]
   description?: string
   sourceUrls?: string[]
-  force?: boolean
 }
 
 export async function generateNewsletter(
   userId: string,
   options: GenerateOptions = {}
 ): Promise<Newsletter> {
-  const { recipientEmail, autoSelect = true, description, sourceUrls, force } = options
-  const body: Record<string, unknown> = {
-    user_id: userId,
-    auto_select: autoSelect,
+  const { recipientEmail, videoIds, description, sourceUrls } = options
+  const body: Record<string, unknown> = { user_id: userId }
+
+  if (videoIds && videoIds.length > 0) {
+    body.video_ids = videoIds
+  } else {
+    // Fallback: auto_select for callers that don't have explicit IDs yet.
+    body.auto_select = true
   }
   if (recipientEmail) body.recipient_email = recipientEmail
   if (description?.trim()) body.description = description.trim()
   if (sourceUrls && sourceUrls.length > 0) body.source_urls = sourceUrls
-  if (force) body.force = true
 
   const res = await fetch(`${API_URL}/newsletters/generate`, {
     method: "POST",
