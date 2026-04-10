@@ -66,7 +66,7 @@ def test_ingest_no_valid_videos_returns_422(client):
             json={"urls": ["https://www.youtube.com/watch?v=dQw4w9WgXcQ"]},
         )
     assert response.status_code == 422
-    assert "No valid videos" in response.json()["detail"]
+    assert "No valid sources" in response.json()["detail"]
 
 
 def test_ingest_missing_body_returns_422(client):
