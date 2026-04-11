@@ -168,8 +168,13 @@ class _QueryBuilder:
             if op in ("IS NULL", "IS NOT NULL"):
                 clauses.append(f'"{col}" {op}')
             elif op == "IN":
-                clauses.append(f'"{col}" = ANY(%s)')
-                params.append(val)
+                # Use IN (%s, %s, ...) so psycopg2 adapts each element
+                # individually, avoiding type-mismatch errors when the column
+                # type (e.g. uuid) differs from the inferred array element type
+                # (e.g. varchar) that ANY(%s) would produce.
+                placeholders = ", ".join(["%s"] * len(val))
+                clauses.append(f'"{col}" IN ({placeholders})')
+                params.extend(val)
             else:
                 clauses.append(f'"{col}" {op} %s')
                 params.append(val)

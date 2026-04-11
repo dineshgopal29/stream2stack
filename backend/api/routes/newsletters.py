@@ -158,6 +158,23 @@ async def _process_video(
     }
 
 
+def _parse_embedding(emb: Any) -> list[float] | None:
+    """Coerce a DB embedding value to list[float].
+
+    Local PostgreSQL via psycopg2 returns pgvector columns as a plain string
+    like '[0.1,0.2,...]'.  Supabase returns a proper list.  Handle both.
+    """
+    if isinstance(emb, list):
+        return emb
+    if isinstance(emb, str):
+        import json
+        try:
+            return json.loads(emb)
+        except Exception:
+            return None
+    return None
+
+
 def _build_references_section(
     video: dict[str, Any],
     web_urls: list[str],
@@ -215,7 +232,7 @@ async def _find_related_references(
 
     scored: list[tuple[float, dict[str, Any]]] = []
     for video in candidates:
-        emb = video.get("embedding")
+        emb = _parse_embedding(video.get("embedding"))
         if not emb:
             continue
         try:
@@ -517,7 +534,7 @@ async def generate_newsletter(body: NewsletterGenerateRequest) -> NewsletterResp
     # -------------------------------------------------------------------------
     _primary_embedding: list[float] = []
     for v in filtered_videos:
-        emb = v.get("embedding")
+        emb = _parse_embedding(v.get("embedding"))
         if emb:
             _primary_embedding = emb
             break

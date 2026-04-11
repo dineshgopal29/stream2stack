@@ -387,7 +387,7 @@ export default function InputPage() {
       {isIngesting && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Processing Videos...</CardTitle>
+            <CardTitle className="text-lg">Processing Sources...</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             {Array.from({ length: 3 }).map((_, i) => (
@@ -405,8 +405,8 @@ export default function InputPage() {
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                 <CardTitle className="text-lg">
-                  {ingestedVideos.length} Video
-                  {ingestedVideos.length !== 1 ? "s" : ""} Ingested
+                  {ingestedVideos.length} Source
+                  {ingestedVideos.length !== 1 ? "s" : ""} Processed
                 </CardTitle>
               </div>
               <Badge variant="success">Ready</Badge>
