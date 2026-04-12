@@ -397,7 +397,8 @@ async def generate_newsletter(body: NewsletterGenerateRequest) -> NewsletterResp
             )
             ranked_videos = result.data or []
         except Exception as exc:
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+            logger.exception("video_ids DB fetch failed (video_ids=%s): %s", body.video_ids, exc)
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"video_ids fetch: {exc}")
 
     elif body.auto_select:
         # ── Playlist mode ────────────────────────────────────────────────────
@@ -440,14 +441,16 @@ async def generate_newsletter(body: NewsletterGenerateRequest) -> NewsletterResp
 
     # -------------------------------------------------------------------------
     # 3. Deduplication — remove already-processed and similarity duplicates.
-    #    Skipped in single-URL mode: the user explicitly named what to write
-    #    about, so dedup would just block them from regenerating.
+    #    Skipped in single-URL mode AND explicit video_ids mode: the user
+    #    explicitly named what to write about, so dedup would just block
+    #    them from regenerating.
     # -------------------------------------------------------------------------
+    _explicit_ids_mode: bool = bool(body.video_ids)
     filtered_videos: list[dict[str, Any]] = []
     for video in ranked_videos:
         vid_id: str = video["id"]
 
-        if not body.force and not _single_url_mode:
+        if not body.force and not _single_url_mode and not _explicit_ids_mode:
             if await asyncio.to_thread(dedup_svc.is_processed, vid_id, body.user_id):
                 logger.info("Skipping already-processed video %s for user %s.", vid_id, body.user_id)
                 continue
@@ -622,8 +625,8 @@ async def generate_newsletter(body: NewsletterGenerateRequest) -> NewsletterResp
         newsletter_db = insert_result.data[0]
         newsletter_id: str = newsletter_db["id"]
     except Exception as exc:
-        logger.exception("Failed to persist newsletter: %s", exc)
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+        logger.exception("Failed to persist newsletter (record keys=%s): %s", list(newsletter_record.keys()), exc)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"newsletter insert: {exc}")
 
     # Link newsletter ↔ videos.
     try:
