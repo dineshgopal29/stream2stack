@@ -75,6 +75,30 @@ def test_ingest_missing_body_returns_422(client):
     assert response.status_code == 422
 
 
+def test_ingest_invalid_playlist_url_returns_422(client):
+    response = client.post(
+        "/videos/ingest",
+        json={"playlist_url": "https://example.com/not-youtube"},
+    )
+    assert response.status_code == 422
+    assert "playlist_url must be a valid YouTube playlist URL" in response.json()["detail"]
+
+
+def test_ingest_web_backend_failure_returns_503(client):
+    with patch(
+        "api.routes.videos.web_svc.ingest_web_url",
+        side_effect=Exception("connection refused"),
+    ):
+        response = client.post(
+            "/videos/ingest",
+            json={"urls": ["https://example.com/article"]},
+        )
+
+    assert response.status_code == 503
+    assert "backend dependency error" in response.json()["detail"]
+    assert "connection refused" in response.json()["detail"]
+
+
 # ---------------------------------------------------------------------------
 # GET /videos
 # ---------------------------------------------------------------------------

@@ -66,6 +66,12 @@ async def ingest_videos(body: VideoIngestRequest) -> VideoIngestResponse:
             detail="Provide at least one video URL or a playlist_url.",
         )
 
+    if body.playlist_url and not _is_youtube_url(body.playlist_url):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="playlist_url must be a valid YouTube playlist URL.",
+        )
+
     # Quota gate — only enforced when user_id is provided.
     quota_headers: dict[str, str] = {}
     if body.user_id:
@@ -76,6 +82,7 @@ async def ingest_videos(body: VideoIngestRequest) -> VideoIngestResponse:
     web_urls     = [u for u in body.urls if not _is_youtube_url(u)]
 
     videos: list[dict[str, Any]] = []
+    ingest_failures: list[str] = []
 
     if youtube_urls or body.playlist_url:
         try:
@@ -98,8 +105,17 @@ async def ingest_videos(body: VideoIngestRequest) -> VideoIngestResponse:
             videos.append(web_video)
         except Exception as exc:
             logger.warning("Web ingestion failed for %r: %s", url, exc)
+            ingest_failures.append(f"{url}: {exc}")
 
     if not videos:
+        if ingest_failures:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Sources were valid, but ingestion could not complete due to a backend dependency error. "
+                    f"Details: {'; '.join(ingest_failures)}"
+                ),
+            )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="No valid sources could be ingested from the provided URLs.",

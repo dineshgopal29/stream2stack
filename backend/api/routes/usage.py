@@ -156,16 +156,19 @@ async def get_usage_cost(
     try:
         result = (
             supabase.table("usage_events")
-            .select("operation, model, input_tokens, output_tokens, total_tokens, cost_usd")
+            .select("operation, model, input_tokens, output_tokens, total_tokens, cost_usd, created_at")
             .eq("user_id", user_id)
-            .gte("created_at", period_start)
-            .lt("created_at", period_end)
             .execute()
         )
-        events: list[dict] = result.data or []
+        raw_events: list[dict] = result.data or []
     except Exception as exc:
         logger.exception("Failed to fetch cost data for user %s: %s", user_id, exc)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+    events = [
+        event for event in raw_events
+        if period_start <= str(event.get("created_at") or "") < period_end
+    ]
 
     # Aggregate in Python — Supabase JS doesn't expose GROUP BY cleanly.
     from collections import defaultdict

@@ -224,7 +224,14 @@ def test_generate_with_description_passes_it_to_blog_generator(
 
     captured = {}
 
-    def fake_generate_blog(transcript, title, concepts, description=None, crawled_context=None):
+    def fake_generate_blog(
+        transcript,
+        title,
+        concepts,
+        description=None,
+        crawled_context=None,
+        **_,
+    ):
         captured["description"] = description
         return "# Blog post"
 
@@ -361,6 +368,40 @@ def test_generate_crawler_failure_does_not_block_generation(
 
     # Should still succeed — crawler failure is non-fatal
     assert response.status_code == 201
+
+
+def test_generate_blog_failure_falls_back_to_draft(
+    client, mock_db, sample_video, sample_newsletter
+):
+    _setup_generate_mocks(mock_db, sample_video, sample_newsletter)
+
+    from unittest.mock import MagicMock
+    from models.schemas import ConceptExtractionResult
+
+    patches = {p: MagicMock() for p in _GENERATE_PATCHES}
+    patches["api.routes.newsletters.concept_svc.extract_concepts"].return_value = ConceptExtractionResult()
+    patches["api.routes.newsletters.blog_svc.generate_blog"].side_effect = Exception("LLM unavailable")
+    captured = {}
+
+    def fake_generate_newsletter(videos_data, **_):
+        captured["videos_data"] = videos_data
+        return ("Newsletter", "# NL")
+
+    patches["api.routes.newsletters.blog_svc.generate_newsletter"] = fake_generate_newsletter
+    patches["api.routes.newsletters.email_svc.markdown_to_html"].return_value = "<html/>"
+    patches["api.routes.newsletters.dedup_svc.is_processed"].return_value = False
+    patches["api.routes.newsletters.dedup_svc.check_similarity_duplicate"].return_value = False
+    patches["api.routes.newsletters.md_svc.generate_markdown"].return_value = "# md"
+    patches["api.routes.newsletters.md_svc.save_to_storage"].return_value = "file://x"
+
+    with _apply_patches(patches):
+        response = client.post(
+            "/newsletters/generate",
+            json={"user_id": "user-1", "auto_select": True},
+        )
+
+    assert response.status_code == 201
+    assert "_Fallback draft generated because the AI generation service was unavailable._" in captured["videos_data"][0]["blog_md"]
 
 
 def test_generate_recipient_email_now_optional(client, mock_db, sample_video, sample_newsletter):

@@ -43,6 +43,70 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Exceptions
+# ---------------------------------------------------------------------------
+
+
+class BlogGenerationError(RuntimeError):
+    """Raised when a blog post cannot be generated for a selected source."""
+
+    def __init__(self, video_title: str, cause: Exception):
+        self.video_title = video_title
+        self.cause = cause
+        super().__init__(f"Blog generation failed for '{video_title}': {cause}")
+
+
+def _build_fallback_blog_md(
+    title: str,
+    transcript: str,
+    concepts: ConceptExtractionResult,
+    description: str | None = None,
+) -> str:
+    """Build a deterministic fallback draft when the LLM is unavailable."""
+    transcript = (transcript or "").strip()
+    paragraphs = [p.strip() for p in transcript.split("\n\n") if p.strip()]
+    summary = paragraphs[0] if paragraphs else transcript[:1200]
+    summary = (summary[:1200] + "...") if len(summary) > 1200 else summary
+
+    bullets: list[str] = []
+    for group in (concepts.concepts, concepts.tools, concepts.patterns, concepts.code_hints):
+        for item in group:
+            item = item.strip()
+            if item and item not in bullets:
+                bullets.append(item)
+            if len(bullets) == 6:
+                break
+        if len(bullets) == 6:
+            break
+
+    lines = [
+        "## Draft Summary",
+        "",
+        "_Fallback draft generated because the AI generation service was unavailable._",
+        "",
+    ]
+
+    if description:
+        lines.extend([
+            f"**Requested angle:** {description}",
+            "",
+        ])
+
+    if summary:
+        lines.extend([summary, ""])
+
+    if bullets:
+        lines.extend(["## Key Points", ""])
+        lines.extend([f"- {item}" for item in bullets])
+        lines.append("")
+
+    if len(paragraphs) > 1:
+        lines.extend(["## Additional Notes", "", paragraphs[1][:1200]])
+
+    return "\n".join(lines).strip()
+
+
+# ---------------------------------------------------------------------------
 # YouTube URL helpers
 # ---------------------------------------------------------------------------
 
@@ -149,7 +213,7 @@ async def _process_video(
         )
     except Exception as exc:
         logger.error("Blog generation failed for video %s: %s", video.get("id"), exc)
-        blog_md = f"## {title}\n\n*Blog generation failed.*"
+        blog_md = _build_fallback_blog_md(title, transcript, concepts, description)
 
     return {
         **video,
@@ -591,8 +655,15 @@ async def generate_newsletter(body: NewsletterGenerateRequest) -> NewsletterResp
                 user_id=body.user_id,
             )
         except Exception as exc:
-            logger.exception("Newsletter assembly failed: %s", exc)
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+            logger.exception(
+                "Newsletter assembly failed (LLM error) — falling back to direct concatenation: %s", exc
+            )
+            # Fallback: assemble newsletter from individual blog posts without LLM.
+            newsletter_title = "Tech Newsletter"
+            parts = [f"# {newsletter_title}\n"]
+            for v in videos_with_blogs:
+                parts.append(f"\n## {v.get('title', 'Untitled')}\n\n{v.get('blog_md', '')}\n")
+            combined_md = "\n---\n".join(parts)
 
     # Append related content references (non-empty only).
     if _related_refs:

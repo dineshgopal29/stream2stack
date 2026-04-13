@@ -35,6 +35,14 @@ import {
 
 const DEMO_USER_ID = "demo-user-id"
 
+function isHttpUrl(value: string) {
+  return /^https?:\/\/.+/i.test(value)
+}
+
+function isYouTubeUrl(value: string) {
+  return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(value.trim())
+}
+
 function VideoCardSkeleton() {
   return (
     <div className="flex gap-3 p-3 rounded-lg border border-border/50 bg-card">
@@ -124,11 +132,13 @@ export default function InputPage() {
   }
 
   async function handleIngest(mode: "urls" | "playlist") {
+    const parsedYoutubeUrls = youtubeUrls.split("\n").map((u) => u.trim()).filter(Boolean)
+    const parsedWebsiteUrls = websiteUrls.split("\n").map((u) => u.trim()).filter(Boolean)
     const urls =
       mode === "urls"
         ? [
-            ...youtubeUrls.split("\n").map((u) => u.trim()).filter(Boolean),
-            ...websiteUrls.split("\n").map((u) => u.trim()).filter(Boolean),
+            ...parsedYoutubeUrls,
+            ...parsedWebsiteUrls,
           ]
         : []
     const playlist = mode === "playlist" ? playlistUrl.trim() : undefined
@@ -140,6 +150,37 @@ export default function InputPage() {
           mode === "urls"
             ? "Please enter at least one YouTube or Website URL."
             : "Please enter a playlist URL.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (mode === "urls") {
+      const invalidYoutubeUrl = parsedYoutubeUrls.find((url) => !isYouTubeUrl(url))
+      if (invalidYoutubeUrl) {
+        toast({
+          title: "Incorrect YouTube URL",
+          description: `Move this website URL to Website URLs or replace it with a YouTube link: ${invalidYoutubeUrl}`,
+          variant: "destructive",
+        })
+        return
+      }
+
+      const invalidWebsiteUrl = parsedWebsiteUrls.find((url) => !isHttpUrl(url) || isYouTubeUrl(url))
+      if (invalidWebsiteUrl) {
+        toast({
+          title: "Incorrect website URL",
+          description: `Website URLs must be non-YouTube http(s) links. Please correct: ${invalidWebsiteUrl}`,
+          variant: "destructive",
+        })
+        return
+      }
+    }
+
+    if (mode === "playlist" && playlist && !isYouTubeUrl(playlist)) {
+      toast({
+        title: "Invalid playlist URL",
+        description: "Please enter a valid YouTube playlist URL.",
         variant: "destructive",
       })
       return
@@ -312,7 +353,7 @@ export default function InputPage() {
                   className="font-mono text-xs resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  One URL per line. Content will be scraped via Firecrawl. Leave blank if not using web sources.
+                  One URL per line. Leave blank if not using web sources.
                 </p>
               </div>
 
