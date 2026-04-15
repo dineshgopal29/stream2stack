@@ -21,8 +21,10 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# Hard limits to prevent feeding massive pages to the LLM.
-_MAX_CONTENT_CHARS = 8_000
+# Storage limit — content is stored in the DB; LLM-specific truncation happens
+# at call time in concept_extraction.py and blog_generator.py.
+# Most technical articles are 25–75K chars; 50K covers the vast majority.
+_MAX_CONTENT_CHARS = 50_000
 _REQUEST_TIMEOUT_SECONDS = 15
 _MAX_REDIRECTS = 3
 

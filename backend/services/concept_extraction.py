@@ -56,10 +56,22 @@ Return between 3 and 10 items per list. Omit categories with zero relevant items
 """
 
 
+def _max_transcript_chars() -> int:
+    """Return transcript char limit based on the active LLM backend.
+
+    Ollama local models typically have 8 192-token context windows.
+    Budget: 8192 tokens - ~400 system - ~50 title - ~512 output ≈ 7 230 tokens
+    @ ~4 chars/token → ~29 000 chars; use 12 000 as a conservative safe limit.
+
+    Claude (200 K context) can comfortably handle 40 000 chars of transcript.
+    """
+    if os.getenv("OLLAMA_BASE_URL"):
+        return 12_000
+    return 40_000
+
+
 def _build_user_prompt(title: str, transcript: str) -> str:
-    # num_ctx=8192 tokens minus ~300 tokens for system prompt and title ≈ 7800 tokens ≈ 31k chars.
-    # Use 6000 chars (1500 tokens) to leave ample room for the 1024-token output.
-    max_chars = 6_000
+    max_chars = _max_transcript_chars()
     if len(transcript) > max_chars:
         transcript = transcript[:max_chars] + "\n\n[Transcript truncated for length]"
 

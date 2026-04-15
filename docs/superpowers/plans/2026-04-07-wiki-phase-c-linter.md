@@ -1,6 +1,6 @@
 # Wiki Phase C Linter Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement a wiki health linter that detects structural issues (broken backlinks, missing code examples, stale pages, contradiction candidates) and exposes them via `GET /wiki/health`.
 
@@ -38,7 +38,7 @@
 | `broken_backlink` | A `[[Term]]` in a page's `backlinks` list has no corresponding wiki page of any type |
 | `contradiction_candidate` | Same slug exists under more than one page type (e.g. both concept and tool) |
 
-- [ ] **Step 1.1: Write failing tests**
+- [x] **Step 1.1: Write failing tests**
 
 Create `backend/tests/unit/test_wiki_linter.py`:
 
@@ -179,7 +179,7 @@ def test_by_check_counts_correctly():
     assert report.by_check.get("missing_code_example", 0) == 2
 ```
 
-- [ ] **Step 1.2: Run tests — verify they fail**
+- [x] **Step 1.2: Run tests — verify they fail**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend && python3 -m pytest tests/unit/test_wiki_linter.py -v 2>&1 | head -15
@@ -187,7 +187,7 @@ cd /Users/dinesh/Documents/My_Product/stream2stack/backend && python3 -m pytest 
 
 Expected: `ModuleNotFoundError: No module named 'services.wiki_linter'`
 
-- [ ] **Step 1.3: Create `backend/services/wiki_linter.py`**
+- [x] **Step 1.3: Create `backend/services/wiki_linter.py`**
 
 ```python
 """
@@ -390,7 +390,7 @@ def run_linter() -> LintReport:
     return report
 ```
 
-- [ ] **Step 1.4: Run tests — verify they pass**
+- [x] **Step 1.4: Run tests — verify they pass**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend && python3 -m pytest tests/unit/test_wiki_linter.py -v
@@ -398,7 +398,7 @@ cd /Users/dinesh/Documents/My_Product/stream2stack/backend && python3 -m pytest 
 
 Expected: all 9 tests pass.
 
-- [ ] **Step 1.5: Run full unit suite — verify no regressions**
+- [x] **Step 1.5: Run full unit suite — verify no regressions**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend && python3 -m pytest tests/unit/ -v 2>&1 | tail -5
@@ -406,7 +406,7 @@ cd /Users/dinesh/Documents/My_Product/stream2stack/backend && python3 -m pytest 
 
 Expected: all tests pass (108 + 9 = 117 total).
 
-- [ ] **Step 1.6: Commit**
+- [x] **Step 1.6: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack && git add backend/services/wiki_linter.py backend/tests/unit/test_wiki_linter.py
@@ -420,7 +420,7 @@ git commit -m "feat: add wiki_linter service with broken_backlink, missing_code_
 **Files:**
 - Modify: `backend/api/routes/wiki.py`
 
-- [ ] **Step 2.1: Add import and response model to `wiki.py`**
+- [x] **Step 2.1: Add import and response model to `wiki.py`**
 
 At the top of `backend/api/routes/wiki.py`, add to the existing imports block:
 
@@ -448,7 +448,7 @@ class HealthResponse(BaseModel):
     issues: list[LintIssueResponse]
 ```
 
-- [ ] **Step 2.2: Add GET /wiki/health route**
+- [x] **Step 2.2: Add GET /wiki/health route**
 
 Append to the end of `backend/api/routes/wiki.py`:
 
@@ -482,7 +482,7 @@ async def wiki_health() -> HealthResponse:
         )
 ```
 
-- [ ] **Step 2.3: Verify endpoint is reachable**
+- [x] **Step 2.3: Verify endpoint is reachable**
 
 ```bash
 curl -s http://localhost:8080/wiki/health | python3 -m json.tool 2>&1 | head -20
@@ -494,7 +494,7 @@ Expected: JSON with `generated_at`, `pages_checked`, `issue_count`, `by_check`, 
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend && uvicorn main:app --host 0.0.0.0 --port 8080 --reload &
 ```
 
-- [ ] **Step 2.4: Verify endpoint appears in OpenAPI docs**
+- [x] **Step 2.4: Verify endpoint appears in OpenAPI docs**
 
 ```bash
 curl -s http://localhost:8080/openapi.json | python3 -c "import json,sys; spec=json.load(sys.stdin); print(list(spec['paths'].keys()))"
@@ -502,7 +502,7 @@ curl -s http://localhost:8080/openapi.json | python3 -c "import json,sys; spec=j
 
 Expected: `/wiki/health` in the list of paths.
 
-- [ ] **Step 2.5: Commit**
+- [x] **Step 2.5: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack && git add backend/api/routes/wiki.py
@@ -518,7 +518,7 @@ git commit -m "feat: add GET /wiki/health endpoint — runs linter and returns J
 - Modify: `doc/wiki-knowledge-base.html`
 - Modify: `tasks/todo.md`
 
-- [ ] **Step 3.1: Update `doc/wiki-knowledge-base.md`**
+- [x] **Step 3.1: Update `doc/wiki-knowledge-base.md`**
 
 Change the Phase C header from:
 
@@ -538,7 +538,7 @@ Add version 0.5 row to the version history table:
 | 0.5 | 2026-04-07 | Phase C complete — wiki_linter.py + GET /wiki/health endpoint |
 ```
 
-- [ ] **Step 3.2: Update `doc/wiki-knowledge-base.html`**
+- [x] **Step 3.2: Update `doc/wiki-knowledge-base.html`**
 
 Find the Phase C block and update the badge from:
 
@@ -568,7 +568,7 @@ Add version 0.5 row to the HTML version history table (after the 0.4 row):
 <tr><td>0.5</td><td>2026-04-07</td><td>Phase C complete — wiki_linter.py + GET /wiki/health endpoint</td></tr>
 ```
 
-- [ ] **Step 3.3: Add Phase 9 to `tasks/todo.md`**
+- [x] **Step 3.3: Add Phase 9 to `tasks/todo.md`**
 
 After the Phase 8 section, add:
 
@@ -580,7 +580,7 @@ After the Phase 8 section, add:
 - [x] backend/api/routes/wiki.py: GET /wiki/health endpoint
 ```
 
-- [ ] **Step 3.4: Commit**
+- [x] **Step 3.4: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack && git add doc/wiki-knowledge-base.md doc/wiki-knowledge-base.html tasks/todo.md
@@ -591,7 +591,7 @@ git commit -m "docs: mark Wiki Phase C complete in all tracking docs"
 
 ## Final Verification
 
-- [ ] **Run full unit test suite**
+- [x] **Run full unit test suite**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend && python3 -m pytest tests/unit/ -v 2>&1 | tail -5
@@ -599,7 +599,7 @@ cd /Users/dinesh/Documents/My_Product/stream2stack/backend && python3 -m pytest 
 
 Expected: 117 tests pass (108 existing + 9 new wiki_linter tests).
 
-- [ ] **Run frontend build to confirm no regressions**
+- [x] **Run frontend build to confirm no regressions**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/frontend && npm run build 2>&1 | tail -5
@@ -607,7 +607,7 @@ cd /Users/dinesh/Documents/My_Product/stream2stack/frontend && npm run build 2>&
 
 Expected: build succeeds.
 
-- [ ] **Smoke test the endpoint**
+- [x] **Smoke test the endpoint**
 
 ```bash
 curl -s http://localhost:8080/wiki/health | python3 -m json.tool

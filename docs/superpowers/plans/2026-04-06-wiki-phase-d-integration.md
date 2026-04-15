@@ -1,6 +1,6 @@
 # Wiki Phase D Integration Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Wire the compiled wiki knowledge base into blog generation (context injection + Learn More links) and add a frontend `/wiki` browse/search/compile route.
 
@@ -30,7 +30,7 @@
 - Create: `backend/services/wiki_context.py`
 - Create: `backend/tests/unit/test_wiki_context.py`
 
-- [ ] **Step 1.1: Write failing tests**
+- [x] **Step 1.1: Write failing tests**
 
 Create `backend/tests/unit/test_wiki_context.py`:
 
@@ -188,7 +188,7 @@ def test_append_learn_more_preserves_original_content():
     assert result.startswith(content)
 ```
 
-- [ ] **Step 1.2: Run tests — verify they fail**
+- [x] **Step 1.2: Run tests — verify they fail**
 
 ```bash
 cd backend && python3 -m pytest tests/unit/test_wiki_context.py -v 2>&1 | head -20
@@ -196,7 +196,7 @@ cd backend && python3 -m pytest tests/unit/test_wiki_context.py -v 2>&1 | head -
 
 Expected: `ModuleNotFoundError: No module named 'services.wiki_context'`
 
-- [ ] **Step 1.3: Create `backend/services/wiki_context.py`**
+- [x] **Step 1.3: Create `backend/services/wiki_context.py`**
 
 ```python
 """
@@ -297,7 +297,7 @@ def append_learn_more(content: str, pages: list[WikiPage]) -> str:
     return content + "\n".join(lines)
 ```
 
-- [ ] **Step 1.4: Run tests — verify they pass**
+- [x] **Step 1.4: Run tests — verify they pass**
 
 ```bash
 cd backend && python3 -m pytest tests/unit/test_wiki_context.py -v
@@ -305,7 +305,7 @@ cd backend && python3 -m pytest tests/unit/test_wiki_context.py -v
 
 Expected: all 11 tests pass.
 
-- [ ] **Step 1.5: Commit**
+- [x] **Step 1.5: Commit**
 
 ```bash
 cd backend && git add services/wiki_context.py tests/unit/test_wiki_context.py
@@ -319,7 +319,7 @@ git commit -m "feat: add wiki_context service — get_relevant_pages, build_wiki
 **Files:**
 - Modify: `backend/services/blog_generator.py` — `generate_blog()` function (lines ~180–241)
 
-- [ ] **Step 2.1: Write failing test**
+- [x] **Step 2.1: Write failing test**
 
 Add to `backend/tests/unit/test_wiki_context.py` (append to the end of the file):
 
@@ -380,7 +380,7 @@ def test_generate_blog_no_learn_more_when_wiki_empty():
     assert "## Learn More" not in result
 ```
 
-- [ ] **Step 2.2: Run tests — verify they fail**
+- [x] **Step 2.2: Run tests — verify they fail**
 
 ```bash
 cd backend && python3 -m pytest tests/unit/test_wiki_context.py::test_generate_blog_appends_learn_more_when_wiki_has_pages tests/unit/test_wiki_context.py::test_generate_blog_no_learn_more_when_wiki_empty -v
@@ -388,7 +388,7 @@ cd backend && python3 -m pytest tests/unit/test_wiki_context.py::test_generate_b
 
 Expected: FAIL — `## Learn More` not in result.
 
-- [ ] **Step 2.3: Modify `generate_blog()` in `blog_generator.py`**
+- [x] **Step 2.3: Modify `generate_blog()` in `blog_generator.py`**
 
 Add import at the top of the file (after existing imports):
 
@@ -427,7 +427,7 @@ Then modify `generate_blog()`. Replace the block starting at `user_content = "\n
     return blog_md
 ```
 
-- [ ] **Step 2.4: Run all tests — verify they pass**
+- [x] **Step 2.4: Run all tests — verify they pass**
 
 ```bash
 cd backend && python3 -m pytest tests/unit/test_wiki_context.py -v
@@ -435,7 +435,7 @@ cd backend && python3 -m pytest tests/unit/test_wiki_context.py -v
 
 Expected: all 13 tests pass.
 
-- [ ] **Step 2.5: Commit**
+- [x] **Step 2.5: Commit**
 
 ```bash
 git add services/blog_generator.py tests/unit/test_wiki_context.py
@@ -449,7 +449,7 @@ git commit -m "feat: inject wiki context and append Learn More links in blog gen
 **Files:**
 - Modify: `frontend/lib/api.ts` — append wiki types and functions
 
-- [ ] **Step 3.1: Add wiki types and API functions to `frontend/lib/api.ts`**
+- [x] **Step 3.1: Add wiki types and API functions to `frontend/lib/api.ts`**
 
 Append to the end of the file:
 
@@ -513,7 +513,7 @@ export async function compileWiki(force = false): Promise<WikiCompileResult> {
 }
 ```
 
-- [ ] **Step 3.2: Verify TypeScript compiles**
+- [x] **Step 3.2: Verify TypeScript compiles**
 
 ```bash
 cd frontend && npm run build 2>&1 | tail -10
@@ -521,7 +521,7 @@ cd frontend && npm run build 2>&1 | tail -10
 
 Expected: build succeeds (or only pre-existing errors, none from api.ts).
 
-- [ ] **Step 3.3: Commit**
+- [x] **Step 3.3: Commit**
 
 ```bash
 git add frontend/lib/api.ts
@@ -535,7 +535,7 @@ git commit -m "feat: add wiki API types and functions to frontend api.ts"
 **Files:**
 - Modify: `frontend/components/navbar.tsx` — add Wiki entry to navLinks
 
-- [ ] **Step 4.1: Add Wiki link to `navLinks`**
+- [x] **Step 4.1: Add Wiki link to `navLinks`**
 
 In `frontend/components/navbar.tsx`, replace the `navLinks` array:
 
@@ -549,7 +549,7 @@ const navLinks = [
 ]
 ```
 
-- [ ] **Step 4.2: Verify build**
+- [x] **Step 4.2: Verify build**
 
 ```bash
 cd frontend && npm run build 2>&1 | tail -5
@@ -557,7 +557,7 @@ cd frontend && npm run build 2>&1 | tail -5
 
 Expected: build succeeds.
 
-- [ ] **Step 4.3: Commit**
+- [x] **Step 4.3: Commit**
 
 ```bash
 git add frontend/components/navbar.tsx
@@ -571,7 +571,7 @@ git commit -m "feat: add Wiki link to navbar"
 **Files:**
 - Create: `frontend/app/wiki/page.tsx`
 
-- [ ] **Step 5.1: Create `frontend/app/wiki/page.tsx`**
+- [x] **Step 5.1: Create `frontend/app/wiki/page.tsx`**
 
 ```tsx
 "use client"
@@ -722,7 +722,7 @@ export default function WikiPage() {
 }
 ```
 
-- [ ] **Step 5.2: Verify build**
+- [x] **Step 5.2: Verify build**
 
 ```bash
 cd frontend && npm run build 2>&1 | tail -10
@@ -730,7 +730,7 @@ cd frontend && npm run build 2>&1 | tail -10
 
 Expected: build succeeds.
 
-- [ ] **Step 5.3: Commit**
+- [x] **Step 5.3: Commit**
 
 ```bash
 git add frontend/app/wiki/page.tsx
@@ -744,13 +744,13 @@ git commit -m "feat: add /wiki browse page with tabs, search, and recompile butt
 **Files:**
 - Create: `frontend/app/wiki/[type]/[slug]/page.tsx`
 
-- [ ] **Step 6.1: Create directory structure**
+- [x] **Step 6.1: Create directory structure**
 
 ```bash
 mkdir -p frontend/app/wiki/\[type\]/\[slug\]
 ```
 
-- [ ] **Step 6.2: Create `frontend/app/wiki/[type]/[slug]/page.tsx`**
+- [x] **Step 6.2: Create `frontend/app/wiki/[type]/[slug]/page.tsx`**
 
 ```tsx
 "use client"
@@ -889,7 +889,7 @@ export default function WikiDetailPage() {
 }
 ```
 
-- [ ] **Step 6.3: Verify build**
+- [x] **Step 6.3: Verify build**
 
 ```bash
 cd frontend && npm run build 2>&1 | tail -10
@@ -897,7 +897,7 @@ cd frontend && npm run build 2>&1 | tail -10
 
 Expected: build succeeds with no errors.
 
-- [ ] **Step 6.4: Commit**
+- [x] **Step 6.4: Commit**
 
 ```bash
 git add "frontend/app/wiki/[type]/[slug]/page.tsx"
@@ -913,7 +913,7 @@ git commit -m "feat: add wiki detail page with rendered Markdown and backlinks"
 - Modify: `doc/wiki-knowledge-base.html`
 - Modify: `tasks/todo.md`
 
-- [ ] **Step 7.1: Update `doc/wiki-knowledge-base.md`**
+- [x] **Step 7.1: Update `doc/wiki-knowledge-base.md`**
 
 In the Phase D section, replace:
 
@@ -933,7 +933,7 @@ And add to the version history table:
 | 0.4 | 2026-04-06 | Phase D complete — wiki context injection, Learn More links, /wiki frontend route |
 ```
 
-- [ ] **Step 7.2: Update `doc/wiki-knowledge-base.html`**
+- [x] **Step 7.2: Update `doc/wiki-knowledge-base.html`**
 
 Find the Phase D badge and update:
 
@@ -953,7 +953,7 @@ And add the 0.4 row to the version history table:
 <tr><td>0.4</td><td>2026-04-06</td><td>Phase D complete — wiki context injection, Learn More links, /wiki frontend route</td></tr>
 ```
 
-- [ ] **Step 7.3: Update `tasks/todo.md`**
+- [x] **Step 7.3: Update `tasks/todo.md`**
 
 The todo.md does not have a Phase 8 for wiki. Add after the Phase 7 section:
 
@@ -969,7 +969,7 @@ The todo.md does not have a Phase 8 for wiki. Add after the Phase 7 section:
 - [x] frontend/app/wiki/[type]/[slug]/page.tsx: page detail with rendered Markdown
 ```
 
-- [ ] **Step 7.4: Commit**
+- [x] **Step 7.4: Commit**
 
 ```bash
 git add doc/wiki-knowledge-base.md doc/wiki-knowledge-base.html tasks/todo.md
@@ -980,7 +980,7 @@ git commit -m "docs: mark Wiki Phase D complete in all tracking docs"
 
 ## Final Verification
 
-- [ ] **Run full backend test suite**
+- [x] **Run full backend test suite**
 
 ```bash
 cd backend && python3 -m pytest tests/unit/ -v 2>&1 | tail -20
@@ -988,7 +988,7 @@ cd backend && python3 -m pytest tests/unit/ -v 2>&1 | tail -20
 
 Expected: all tests pass including the 13 new wiki_context tests.
 
-- [ ] **Run frontend build**
+- [x] **Run frontend build**
 
 ```bash
 cd frontend && npm run build 2>&1 | tail -10
@@ -996,7 +996,7 @@ cd frontend && npm run build 2>&1 | tail -10
 
 Expected: build succeeds.
 
-- [ ] **Smoke test: start backend and verify wiki endpoint**
+- [x] **Smoke test: start backend and verify wiki endpoint**
 
 ```bash
 curl -s http://localhost:8080/wiki/stats | python3 -m json.tool

@@ -1,6 +1,6 @@
 # Content Ingestion Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Fix session isolation (blog content uses only currently ingested sources), add playlist top-3 cohesive video selection, split the Video URLs tab UI into YouTube + Website textareas with a live mode badge, and surface past DB content as reference links only.
 
@@ -30,7 +30,7 @@
 - Modify: `backend/services/ranking.py`
 - Test: `backend/tests/unit/test_ranking.py`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `backend/tests/unit/test_ranking.py`:
 
@@ -99,7 +99,7 @@ def test_select_cohesive_top_n_pads_with_no_embedding_videos():
     assert result[0]["id"] == "emb"
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -108,7 +108,7 @@ python -m pytest tests/unit/test_ranking.py::test_select_cohesive_top_n_empty_re
 
 Expected: `FAILED` with `ImportError: cannot import name 'select_cohesive_top_n'`
 
-- [ ] **Step 3: Implement `select_cohesive_top_n` in ranking.py**
+- [x] **Step 3: Implement `select_cohesive_top_n` in ranking.py**
 
 Add at the end of `backend/services/ranking.py` (after `rank_and_select`):
 
@@ -180,7 +180,7 @@ def select_cohesive_top_n(
 
 Also add `select_cohesive_top_n` to the import in the test file (already present from Step 1).
 
-- [ ] **Step 4: Run all ranking tests**
+- [x] **Step 4: Run all ranking tests**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -189,7 +189,7 @@ python -m pytest tests/unit/test_ranking.py -v
 
 Expected: All tests PASS (including the 5 new ones).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/services/ranking.py backend/tests/unit/test_ranking.py
@@ -203,7 +203,7 @@ git commit -m "feat: add select_cohesive_top_n to ranking service"
 **Files:**
 - Modify: `backend/api/routes/videos.py`
 
-- [ ] **Step 1: Add playlist narrowing after `processed` is built**
+- [x] **Step 1: Add playlist narrowing after `processed` is built**
 
 In `backend/api/routes/videos.py`, find the line:
 
@@ -232,7 +232,7 @@ Replace it with:
     )
 ```
 
-- [ ] **Step 2: Manual smoke test (no unit test needed — behaviour covered by ranking tests)**
+- [x] **Step 2: Manual smoke test (no unit test needed — behaviour covered by ranking tests)**
 
 Start the backend and POST a playlist URL with > 3 videos, confirm the response contains ≤ 3 videos:
 
@@ -247,7 +247,7 @@ curl -s -X POST http://localhost:8080/videos/ingest \
 
 Expected output: `3 videos` (or fewer if playlist has < 3 accessible videos).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add backend/api/routes/videos.py
@@ -261,7 +261,7 @@ git commit -m "feat: narrow playlist ingest to top-3 cohesive videos"
 **Files:**
 - Modify: `backend/api/routes/newsletters.py`
 
-- [ ] **Step 1: Add `_find_related_references` and `_build_related_content_section` helpers**
+- [x] **Step 1: Add `_find_related_references` and `_build_related_content_section` helpers**
 
 Add these two functions to `backend/api/routes/newsletters.py` immediately after the `_build_references_section` function (around line 182):
 
@@ -335,7 +335,7 @@ def _build_related_content_section(related: list[dict[str, Any]]) -> str:
     return "\n".join(lines) + "\n"
 ```
 
-- [ ] **Step 2: Call `_find_related_references` after blog generation, before DB persist**
+- [x] **Step 2: Call `_find_related_references` after blog generation, before DB persist**
 
 In `backend/api/routes/newsletters.py`, find the comment block:
 
@@ -366,7 +366,7 @@ Just before that block (after the `videos_with_blogs` check), add:
         )
 ```
 
-- [ ] **Step 3: Append related content section to `combined_md`**
+- [x] **Step 3: Append related content section to `combined_md`**
 
 In `backend/api/routes/newsletters.py`, find the block that ends with:
 
@@ -384,7 +384,7 @@ Just before that block, add:
         combined_md += _build_related_content_section(_related_refs)
 ```
 
-- [ ] **Step 4: Run newsletter API tests to confirm nothing is broken**
+- [x] **Step 4: Run newsletter API tests to confirm nothing is broken**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -393,7 +393,7 @@ python -m pytest tests/api/test_newsletters_api.py -v
 
 Expected: All existing tests PASS. The new `_find_related_references` call hits the DB mock — since the mock returns `None` by default for unconfigured chains, the function will catch the exception and return `[]`, so `_related_refs` stays empty and no section is appended. Tests should still pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/api/routes/newsletters.py
@@ -407,7 +407,7 @@ git commit -m "feat: append related content references to generated blog"
 **Files:**
 - Modify: `frontend/lib/api.ts`
 
-- [ ] **Step 1: Update the interface and function**
+- [x] **Step 1: Update the interface and function**
 
 In `frontend/lib/api.ts`, replace the `GenerateOptions` interface and `generateNewsletter` function:
 
@@ -445,7 +445,7 @@ export async function generateNewsletter(
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript compiles**
+- [x] **Step 2: Verify TypeScript compiles**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/frontend
@@ -454,7 +454,7 @@ npx tsc --noEmit
 
 Expected: No errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/lib/api.ts
@@ -468,7 +468,7 @@ git commit -m "feat: update GenerateOptions to use videoIds instead of autoSelec
 **Files:**
 - Modify: `frontend/app/input/page.tsx`
 
-- [ ] **Step 1: Replace single textarea state with two-textarea state**
+- [x] **Step 1: Replace single textarea state with two-textarea state**
 
 In `frontend/app/input/page.tsx`, find and replace the ingest state declarations:
 
@@ -494,7 +494,7 @@ New:
   const [sessionVideoIds, setSessionVideoIds] = useState<string[]>([])
 ```
 
-- [ ] **Step 2: Add the mode badge helper function**
+- [x] **Step 2: Add the mode badge helper function**
 
 Add this function inside the `InputPage` component, just before `handleIngest`:
 
@@ -509,7 +509,7 @@ Add this function inside the `InputPage` component, just before `handleIngest`:
   }
 ```
 
-- [ ] **Step 3: Update `handleIngest` to combine both URL fields and store session IDs**
+- [x] **Step 3: Update `handleIngest` to combine both URL fields and store session IDs**
 
 Replace the existing `handleIngest` function:
 
@@ -559,7 +559,7 @@ Replace the existing `handleIngest` function:
   }
 ```
 
-- [ ] **Step 4: Update `handleGenerateNewsletter` to use `videoIds`**
+- [x] **Step 4: Update `handleGenerateNewsletter` to use `videoIds`**
 
 Replace the newsletter options block inside `handleGenerateNewsletter`:
 
@@ -603,7 +603,7 @@ New:
       const newsletter = await generateNewsletter(DEMO_USER_ID, opts)
 ```
 
-- [ ] **Step 5: Update `handleReset` to clear new state**
+- [x] **Step 5: Update `handleReset` to clear new state**
 
 Replace:
 ```typescript
@@ -637,7 +637,7 @@ With:
   }
 ```
 
-- [ ] **Step 6: Remove the now-unused `ApiError` import**
+- [x] **Step 6: Remove the now-unused `ApiError` import**
 
 The force-retry path that used `ApiError` has been removed. Update the import in `frontend/app/input/page.tsx`:
 
@@ -651,7 +651,7 @@ import {
 } from "@/lib/api"
 ```
 
-- [ ] **Step 7: Replace the Video URLs `TabsContent` JSX with the two-textarea layout**
+- [x] **Step 7: Replace the Video URLs `TabsContent` JSX with the two-textarea layout**
 
 Replace the entire `<TabsContent value="urls" ...>` block:
 
@@ -768,7 +768,7 @@ New:
             </TabsContent>
 ```
 
-- [ ] **Step 8: Verify TypeScript compiles with no errors**
+- [x] **Step 8: Verify TypeScript compiles with no errors**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/frontend
@@ -777,7 +777,7 @@ npx tsc --noEmit
 
 Expected: No errors.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add frontend/app/input/page.tsx
@@ -792,7 +792,7 @@ git commit -m "feat: split Video URLs tab into YouTube + Website textareas with 
 - Modify: `frontend/app/input/page.tsx` (playlist tab description only)
 - Modify: `frontend/tests/e2e/ingest-and-wiki.spec.ts`
 
-- [ ] **Step 1: Update playlist helper text**
+- [x] **Step 1: Update playlist helper text**
 
 In `frontend/app/input/page.tsx`, find the playlist tab description:
 
@@ -810,7 +810,7 @@ Replace with:
                 </p>
 ```
 
-- [ ] **Step 2: Update E2E test label assertion**
+- [x] **Step 2: Update E2E test label assertion**
 
 In `frontend/tests/e2e/ingest-and-wiki.spec.ts`, find:
 
@@ -827,7 +827,7 @@ Replace with:
   await expect(page.getByText(/Leave blank if not using YouTube/i)).toBeVisible()
 ```
 
-- [ ] **Step 3: Verify the Next.js dev server compiles without errors**
+- [x] **Step 3: Verify the Next.js dev server compiles without errors**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/frontend
@@ -836,7 +836,7 @@ npm run build 2>&1 | tail -20
 
 Expected: Build completes with no TypeScript or lint errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/app/input/page.tsx frontend/tests/e2e/ingest-and-wiki.spec.ts
@@ -847,7 +847,7 @@ git commit -m "feat: update playlist copy and E2E assertions for redesigned inpu
 
 ## Final Verification
 
-- [ ] **Run all backend unit tests**
+- [x] **Run all backend unit tests**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -856,7 +856,7 @@ python -m pytest tests/unit/ tests/api/ -v
 
 Expected: All tests PASS.
 
-- [ ] **Smoke test the full flow manually**
+- [x] **Smoke test the full flow manually**
 
 1. Start backend: `uvicorn backend.main:app --port 8080 --reload` (from repo root)
 2. Start frontend: `cd frontend && npm run dev`

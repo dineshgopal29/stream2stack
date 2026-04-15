@@ -8,7 +8,9 @@ column in Supabase.
 
 from __future__ import annotations
 
+import html
 import logging
+import re
 from typing import Any
 
 from youtube_transcript_api import (
@@ -24,6 +26,39 @@ logger = logging.getLogger(__name__)
 
 # v1.x: YouTubeTranscriptApi is now instantiated, not used as a static class.
 _yt_api = YouTubeTranscriptApi()
+
+# Matches auto-caption non-speech artifacts like [Music], [Applause], [Laughter], etc.
+_ARTIFACT_RE = re.compile(r"\[[^\]]{1,40}\]")
+# Collapse runs of whitespace to single space
+_MULTI_SPACE_RE = re.compile(r" {2,}")
+
+_PARAGRAPH_WORDS = 60  # target paragraph size
+
+
+def _build_transcript(snippets) -> str:
+    """Build clean, paragraph-structured transcript from caption snippets.
+
+    - Decodes HTML entities (&#39; → ', &amp; → &, etc.)
+    - Removes non-speech artifacts ([Music], [Applause], [Laughter], etc.)
+    - Groups words into readable paragraphs (~60 words each)
+    """
+    words: list[str] = []
+    for s in snippets:
+        text = html.unescape(s.text.strip())
+        text = _ARTIFACT_RE.sub("", text)
+        text = _MULTI_SPACE_RE.sub(" ", text).strip()
+        if text:
+            words.extend(text.split())
+
+    if not words:
+        return ""
+
+    paragraphs: list[str] = []
+    for i in range(0, len(words), _PARAGRAPH_WORDS):
+        para = " ".join(words[i : i + _PARAGRAPH_WORDS])
+        paragraphs.append(para)
+
+    return "\n\n".join(paragraphs)
 
 
 def get_transcript(youtube_id: str) -> str:
@@ -67,7 +102,7 @@ def get_transcript(youtube_id: str) -> str:
 
         # v1.x: fetch() returns FetchedTranscript; snippets are objects with .text
         fetched = transcript.fetch()
-        full_text = " ".join(s.text.strip() for s in fetched.snippets if s.text)
+        full_text = _build_transcript(fetched.snippets)
         logger.info(
             "Fetched transcript for %s: %d characters.", youtube_id, len(full_text)
         )

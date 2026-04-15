@@ -19,9 +19,10 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Larger limit than plain-text crawlers because Markdown is compact and we want
-# to preserve image references intact — truncating mid-image-link breaks the URL.
-_MAX_CONTENT_CHARS = 24_000
+# Storage limit — Firecrawl returns clean Markdown; store as much as possible.
+# LLM-specific truncation happens at call time (concept_extraction / blog_generator).
+# Firecrawl Markdown is compact; 100K covers even very long technical articles.
+_MAX_CONTENT_CHARS = 100_000
 
 # Matches standard Markdown image syntax: ![alt text](https://example.com/img.png)
 _IMAGE_RE = re.compile(r"!\[([^\]]*)\]\((https?://[^\)\s]+)\)")

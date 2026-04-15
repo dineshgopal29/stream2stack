@@ -84,10 +84,23 @@ Guidelines:
 
 
 def _truncate(text: str, max_chars: int = 4_000) -> str:
-    """Truncate text to stay within Ollama's effective context window."""
+    """Truncate text to a given character limit."""
     if len(text) <= max_chars:
         return text
     return text[:max_chars] + "\n\n[Content truncated for length]"
+
+
+def _transcript_max_chars() -> int:
+    """Return max transcript chars to send based on the active LLM backend.
+
+    Ollama local models: 8 192-token context. Budget after system/output tokens
+    leaves ~7 000 tokens for prompt content (~28 K chars); use 12 K conservatively.
+
+    Claude (200 K context): comfortably handles 50 K chars of transcript.
+    """
+    if os.getenv("OLLAMA_BASE_URL"):
+        return 12_000
+    return 50_000
 
 
 def _get_client():
@@ -226,7 +239,7 @@ def generate_blog(
     if crawled_context:
         parts.append(crawled_context)
 
-    parts.append(f"## Video Transcript\n{_truncate(transcript)}")
+    parts.append(f"## Video Transcript\n{_truncate(transcript, _transcript_max_chars())}")
 
     user_content = "\n\n".join(parts)
 

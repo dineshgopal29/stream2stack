@@ -102,7 +102,8 @@ def test_crawl_url_returns_text(mock_client_cls):
 
 @patch("services.web_crawler.httpx.Client")
 def test_crawl_url_truncates_long_content(mock_client_cls):
-    long_html = "<p>" + ("x" * 20_000) + "</p>"
+    # Use content larger than _MAX_CONTENT_CHARS (50_000) to trigger truncation.
+    long_html = "<p>" + ("x" * 60_000) + "</p>"
     mock_client = MagicMock()
     mock_client.__enter__ = MagicMock(return_value=mock_client)
     mock_client.__exit__ = MagicMock(return_value=False)
@@ -111,7 +112,7 @@ def test_crawl_url_truncates_long_content(mock_client_cls):
 
     result = crawl_url("https://example.com")
     assert result is not None
-    assert len(result) <= 8_100  # _MAX_CONTENT_CHARS + truncation suffix
+    assert len(result) <= 50_100  # _MAX_CONTENT_CHARS + truncation suffix
     assert "[Content truncated]" in result
 
 

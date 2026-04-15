@@ -1,6 +1,6 @@
 # Web Source Ingestion Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Extend the ingest pipeline so the "Video URLs" textarea accepts YouTube URLs and website URLs interchangeably — web articles are scraped via Firecrawl, stored in the `videos` table, and flow through concept-extraction → wiki-compiler automatically.
 
@@ -33,7 +33,7 @@
 **Files:**
 - Create: `supabase/migrations/003_web_sources.sql`
 
-- [ ] **Step 1.1: Create the migration file**
+- [x] **Step 1.1: Create the migration file**
 
 ```sql
 -- supabase/migrations/003_web_sources.sql
@@ -48,7 +48,7 @@ COMMENT ON COLUMN videos.source_type IS 'youtube | web';
 COMMENT ON COLUMN videos.source_url  IS 'Original URL for web-scraped sources (null for YouTube)';
 ```
 
-- [ ] **Step 1.2: Apply the migration**
+- [x] **Step 1.2: Apply the migration**
 
 ```bash
 # Apply to local Docker Postgres
@@ -63,7 +63,7 @@ COMMENT
 COMMENT
 ```
 
-- [ ] **Step 1.3: Verify columns exist**
+- [x] **Step 1.3: Verify columns exist**
 
 ```bash
 docker exec stream2stack-postgres-1 psql -U stream2stack -d stream2stack -c "\d videos"
@@ -71,7 +71,7 @@ docker exec stream2stack-postgres-1 psql -U stream2stack -d stream2stack -c "\d 
 
 Expected: `source_type` and `source_url` columns appear in the table description.
 
-- [ ] **Step 1.4: Commit**
+- [x] **Step 1.4: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack
@@ -87,7 +87,7 @@ git commit -m "feat: add source_type and source_url columns to videos table"
 - Create: `backend/services/web_ingestion.py`
 - Create: `backend/tests/unit/test_web_ingestion.py`
 
-- [ ] **Step 2.1: Write failing tests**
+- [x] **Step 2.1: Write failing tests**
 
 Create `backend/tests/unit/test_web_ingestion.py`:
 
@@ -212,7 +212,7 @@ def test_ingest_web_url_raises_on_crawl_failure():
             ingest_web_url("https://example.com/article")
 ```
 
-- [ ] **Step 2.2: Run tests — verify they fail**
+- [x] **Step 2.2: Run tests — verify they fail**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -221,7 +221,7 @@ python3 -m pytest tests/unit/test_web_ingestion.py -v 2>&1 | head -20
 
 Expected: `ModuleNotFoundError: No module named 'services.web_ingestion'`
 
-- [ ] **Step 2.3: Create `backend/services/web_ingestion.py`**
+- [x] **Step 2.3: Create `backend/services/web_ingestion.py`**
 
 ```python
 """
@@ -342,7 +342,7 @@ def ingest_web_url(url: str) -> dict:
     raise RuntimeError(f"Upsert produced no record for {url!r}")
 ```
 
-- [ ] **Step 2.4: Run tests — verify they pass**
+- [x] **Step 2.4: Run tests — verify they pass**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -351,7 +351,7 @@ python3 -m pytest tests/unit/test_web_ingestion.py -v
 
 Expected: 11 tests pass.
 
-- [ ] **Step 2.5: Run full unit suite — no regressions**
+- [x] **Step 2.5: Run full unit suite — no regressions**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -360,7 +360,7 @@ python3 -m pytest tests/unit/ -v 2>&1 | tail -5
 
 Expected: 130 tests pass (119 existing + 11 new).
 
-- [ ] **Step 2.6: Commit**
+- [x] **Step 2.6: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack
@@ -376,7 +376,7 @@ git commit -m "feat: add web_ingestion service — scrape URLs via Firecrawl and
 - Create: `backend/api/routes/admin.py`
 - Modify: `backend/main.py` (lines 8, 94)
 
-- [ ] **Step 3.1: Create `backend/api/routes/admin.py`**
+- [x] **Step 3.1: Create `backend/api/routes/admin.py`**
 
 ```python
 """
@@ -442,7 +442,7 @@ async def clear_data() -> dict:
     return {"cleared": True, "tables": cleared_tables}
 ```
 
-- [ ] **Step 3.2: Register admin router in `backend/main.py`**
+- [x] **Step 3.2: Register admin router in `backend/main.py`**
 
 Change line 8 from:
 ```python
@@ -458,7 +458,7 @@ After line 94 (`app.include_router(wiki_routes.router, ...)`), add:
     app.include_router(admin_routes.router,    prefix="/admin",     tags=["Admin"])
 ```
 
-- [ ] **Step 3.3: Verify endpoint loads**
+- [x] **Step 3.3: Verify endpoint loads**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -467,7 +467,7 @@ python3 -c "from api.routes.admin import router; print('OK')"
 
 Expected: `OK`
 
-- [ ] **Step 3.4: Verify endpoint appears in OpenAPI**
+- [x] **Step 3.4: Verify endpoint appears in OpenAPI**
 
 Start backend if not running:
 ```bash
@@ -479,7 +479,7 @@ curl -s http://localhost:8080/openapi.json | python3 -c "import json,sys; paths=
 
 Expected: `['/admin/data']`
 
-- [ ] **Step 3.5: Commit**
+- [x] **Step 3.5: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack
@@ -496,13 +496,13 @@ git commit -m "feat: add DELETE /admin/data endpoint to clear all ingested data 
 
 Current file is at `backend/api/routes/videos.py`. The ingest route is at line 45.
 
-- [ ] **Step 4.1: Read the current file to confirm line numbers**
+- [x] **Step 4.1: Read the current file to confirm line numbers**
 
 ```bash
 grep -n "def ingest_videos\|from services\|is_youtube" /Users/dinesh/Documents/My_Product/stream2stack/backend/api/routes/videos.py
 ```
 
-- [ ] **Step 4.2: Add web_ingestion import and URL-type helper**
+- [x] **Step 4.2: Add web_ingestion import and URL-type helper**
 
 At the top of `backend/api/routes/videos.py`, change the imports block from:
 ```python
@@ -532,7 +532,7 @@ def _is_youtube_url(url: str) -> bool:
     return "youtube.com" in host or "youtu.be" in host
 ```
 
-- [ ] **Step 4.3: Replace the ingestion logic inside `ingest_videos`**
+- [x] **Step 4.3: Replace the ingestion logic inside `ingest_videos`**
 
 In `backend/api/routes/videos.py`, find the block after the quota check (around line 65):
 ```python
@@ -596,7 +596,7 @@ Replace it with:
         )
 ```
 
-- [ ] **Step 4.4: Add auto-wiki-compile at the end of `ingest_videos`**
+- [x] **Step 4.4: Add auto-wiki-compile at the end of `ingest_videos`**
 
 Find the return statement at the end of `ingest_videos`:
 ```python
@@ -624,7 +624,7 @@ Replace with:
     )
 ```
 
-- [ ] **Step 4.5: Verify the module imports cleanly**
+- [x] **Step 4.5: Verify the module imports cleanly**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -633,7 +633,7 @@ python3 -c "from api.routes.videos import router; print('OK')"
 
 Expected: `OK`
 
-- [ ] **Step 4.6: Run unit tests — no regressions**
+- [x] **Step 4.6: Run unit tests — no regressions**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -642,7 +642,7 @@ python3 -m pytest tests/unit/ -v 2>&1 | tail -5
 
 Expected: all 130 tests pass.
 
-- [ ] **Step 4.7: Commit**
+- [x] **Step 4.7: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack
@@ -657,7 +657,7 @@ git commit -m "feat: route mixed YouTube+web URLs in /videos/ingest, auto-trigge
 **Files:**
 - Modify: `frontend/app/input/page.tsx`
 
-- [ ] **Step 5.1: Update the "Video URLs" tab description and placeholder**
+- [x] **Step 5.1: Update the "Video URLs" tab description and placeholder**
 
 In `frontend/app/input/page.tsx`, find:
 ```tsx
@@ -701,7 +701,7 @@ Replace with:
                 </p>
 ```
 
-- [ ] **Step 5.2: Add Globe icon fallback for web sources in VideoCard**
+- [x] **Step 5.2: Add Globe icon fallback for web sources in VideoCard**
 
 In `frontend/app/input/page.tsx`, find the import line:
 ```tsx
@@ -752,7 +752,7 @@ Replace with:
         </div>
 ```
 
-- [ ] **Step 5.3: Verify frontend build passes**
+- [x] **Step 5.3: Verify frontend build passes**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/frontend
@@ -761,7 +761,7 @@ npm run build 2>&1 | tail -10
 
 Expected: build succeeds with no type errors.
 
-- [ ] **Step 5.4: Commit**
+- [x] **Step 5.4: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack
@@ -778,7 +778,7 @@ git commit -m "feat: update Video URLs tab to accept website URLs alongside YouT
 - Create: `frontend/playwright.config.ts`
 - Create: `frontend/tests/e2e/ingest-and-wiki.spec.ts`
 
-- [ ] **Step 6.1: Install Playwright**
+- [x] **Step 6.1: Install Playwright**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/frontend
@@ -788,7 +788,7 @@ npx playwright install chromium
 
 Expected: Playwright installed, Chromium browser downloaded.
 
-- [ ] **Step 6.2: Create `frontend/playwright.config.ts`**
+- [x] **Step 6.2: Create `frontend/playwright.config.ts`**
 
 ```typescript
 import { defineConfig, devices } from "@playwright/test"
@@ -813,7 +813,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 6.3: Create `frontend/tests/e2e/ingest-and-wiki.spec.ts`**
+- [x] **Step 6.3: Create `frontend/tests/e2e/ingest-and-wiki.spec.ts`**
 
 ```typescript
 import { test, expect, request } from "@playwright/test"
@@ -895,14 +895,14 @@ test("wiki health endpoint returns pages_checked > 0", async () => {
 })
 ```
 
-- [ ] **Step 6.4: Add test script to `frontend/package.json`**
+- [x] **Step 6.4: Add test script to `frontend/package.json`**
 
 In `frontend/package.json`, add to the `"scripts"` section:
 ```json
 "test:e2e": "playwright test"
 ```
 
-- [ ] **Step 6.5: Ensure backend and frontend are running, then run tests**
+- [x] **Step 6.5: Ensure backend and frontend are running, then run tests**
 
 In separate terminals (or use the existing running instances):
 ```bash
@@ -928,7 +928,7 @@ Expected: 4 tests pass. Fix any failures before proceeding (see Troubleshooting 
 - If wiki test fails (no pages visible): check that auto-compile background task ran — `curl http://localhost:8080/wiki/stats` to see page counts. If 0, manually call `curl -X POST http://localhost:8080/wiki/compile -H "Content-Type: application/json" -d '{"user_id":"system"}'`.
 - If Firecrawl returns no content: check `FIRECRAWL_API_KEY` in `backend/.env`. If missing, the httpx fallback will be used — it may fail on JS-heavy pages.
 
-- [ ] **Step 6.6: Commit**
+- [x] **Step 6.6: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack
@@ -943,7 +943,7 @@ git commit -m "feat: add Playwright E2E tests for ingest + newsletter + wiki flo
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 7.1: Add "Supported Input Types" section to README**
+- [x] **Step 7.1: Add "Supported Input Types" section to README**
 
 In `README.md`, after the existing `## Architecture` section, add:
 
@@ -974,7 +974,7 @@ FIRECRAWL_API_KEY=fc-your-key-here
 After every ingest, the wiki is automatically compiled. Each ingested source (video or article) is processed through concept extraction — the extracted concepts, tools, and patterns become wiki pages at `/wiki`.
 ```
 
-- [ ] **Step 7.2: Commit**
+- [x] **Step 7.2: Commit**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack
@@ -986,7 +986,7 @@ git commit -m "docs: add Supported Input Types section covering YouTube + websit
 
 ## Final Verification
 
-- [ ] **Run full backend unit suite**
+- [x] **Run full backend unit suite**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/backend
@@ -995,7 +995,7 @@ python3 -m pytest tests/unit/ -v 2>&1 | tail -5
 
 Expected: 130 tests pass.
 
-- [ ] **Run frontend build**
+- [x] **Run frontend build**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/frontend
@@ -1004,7 +1004,7 @@ npm run build 2>&1 | tail -5
 
 Expected: build succeeds.
 
-- [ ] **Clear data and smoke test live ingest**
+- [x] **Clear data and smoke test live ingest**
 
 ```bash
 # Clear data
@@ -1023,7 +1023,7 @@ curl -s http://localhost:8080/wiki/stats | python3 -m json.tool
 
 Expected: `pages_checked > 0` in wiki stats.
 
-- [ ] **Run Playwright E2E tests**
+- [x] **Run Playwright E2E tests**
 
 ```bash
 cd /Users/dinesh/Documents/My_Product/stream2stack/frontend
